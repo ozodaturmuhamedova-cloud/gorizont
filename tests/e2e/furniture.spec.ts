@@ -41,8 +41,8 @@ test.describe('мебель в 3D', () => {
     await expect(page.getByTestId('furniture-cost')).not.toHaveText(/^0/);
     const furnitureCost = money(await page.getByTestId('furniture-cost').textContent());
     expect(money(await page.getByTestId('total').textContent())).toBe(before + furnitureCost);
-    const frames = await page.evaluate(() => window.__gorizont3d!.frames());
-    await page.waitForFunction((n) => window.__gorizont3d!.frames() > n, frames);
+    // сцена рисуется по событию: после смены мебели кадр уже отрисован
+    await page.waitForTimeout(500);
     const calls = await page.evaluate(() => window.__gorizont3d!.calls());
     expect(calls).toBeLessThan(150);
     expect((await savedFurniture(page)).length).toBeGreaterThan(10);

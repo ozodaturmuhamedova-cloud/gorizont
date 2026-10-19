@@ -224,13 +224,14 @@ export function Furnishing({ apartment, center, editable }: FurnishingProps) {
       const store = useStore.getState();
       const d = drag.current;
       if (d) {
-        drag.current = null;
-        if (controls) controls.enabled = true;
         const p = planPoint(e.clientX, e.clientY);
         // короткое нажатие без сдвига — только выбор, позицию не трогаем
         const result = d.moved && !click && p ? evaluate(p) : null;
-        if (result && result.check.status !== 'error')
+        drag.current = null;
+        if (controls) controls.enabled = true;
+        if (result && result.check.status !== 'error') {
           store.moveFurniture(aptId, d.index, result.pose);
+        }
         setActive(null);
         return;
       }
