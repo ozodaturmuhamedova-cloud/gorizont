@@ -89,6 +89,19 @@ export function FloorPlanStage(props: FloorPlanStageProps) {
     if (fit) setView(fit);
   }, [fit, floor]);
 
+  // Мини-карта нужна, только когда виден не весь этаж
+  const zoomedIn = useMemo(() => {
+    if (!view) return false;
+    const v = visibleBounds(view, size);
+    const eps = 0.05;
+    return (
+      v.min[0] > bounds.min[0] + eps ||
+      v.min[1] > bounds.min[1] + eps ||
+      v.max[0] < bounds.max[0] - eps ||
+      v.max[1] < bounds.max[1] - eps
+    );
+  }, [view, size, bounds]);
+
   const selected = apartments.find((a) => a.id === selectedId) ?? null;
   const hovered = apartments.find((a) => a.id === hoveredId) ?? null;
 
@@ -305,7 +318,7 @@ export function FloorPlanStage(props: FloorPlanStageProps) {
         </button>
       </div>
 
-      {view && size.width >= 480 && (
+      {view && zoomedIn && (
         <div className="absolute bottom-3 right-3 z-10 rounded-lg border border-line bg-paper/95 p-1.5 shadow-sm">
           <MiniMap
             floorPlate={floorPlate}
