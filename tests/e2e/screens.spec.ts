@@ -57,3 +57,26 @@ test('скриншот: первый экран телефона', async ({ page
   await page.waitForTimeout(300);
   await page.screenshot({ path: 'screens/first-screen-mobile.png' });
 });
+
+test('скриншот: 3D-квартира, вид 3/4', async ({ page }, info) => {
+  await page.goto('/apartment/s1-f9-a6/3d');
+  await page.waitForFunction(() => (window.__gorizont3d?.frames() ?? 0) >= 1, null, {
+    timeout: 20_000,
+  });
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: `screens/3d-${info.project.name}.png` });
+});
+
+test('скриншот: 3D со срезом стен и отделкой «Лофт»', async ({ page, isMobile }, info) => {
+  test.skip(isMobile, 'достаточно десктопа');
+  await page.goto('/apartment/s1-f9-a3/3d');
+  await page.waitForFunction(() => (window.__gorizont3d?.frames() ?? 0) >= 1, null, {
+    timeout: 20_000,
+  });
+  await page.getByRole('button', { name: /Лофт/ }).click();
+  await page.getByRole('button', { name: 'Срез стен' }).click();
+  await page.waitForTimeout(1200);
+  await page
+    .getByRole('img', { name: '3D-модель квартиры 51' })
+    .screenshot({ path: `screens/3d-cut-${info.project.name}.png` });
+});

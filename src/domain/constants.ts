@@ -31,6 +31,20 @@ export const PLAN_FIT_PADDING = 24;
 /** Прозрачность квартир, не прошедших фильтр. */
 export const PLAN_FILTERED_OPACITY = 0.25;
 
+// ---------- 3D-сцена (§7) ----------
+/** Высота стен в режиме «срез», м. */
+export const WALL_CUT_HEIGHT = 1.1;
+export const GLASS_THICKNESS = 0.02;
+/** Профиль оконной рамы: ширина и глубина, м. */
+export const FRAME_PROFILE = 0.05;
+export const FRAME_DEPTH = 0.08;
+/** Подоконник: вылет внутрь комнаты и толщина, м. */
+export const SILL_DEPTH = 0.22;
+export const SILL_THICKNESS = 0.03;
+/** Дверной наличник: ширина и толщина, м. */
+export const TRIM_WIDTH = 0.06;
+export const TRIM_DEPTH = 0.015;
+
 // ---------- прогулка (§7.1) ----------
 export const HEIGHT_MIN_CM = 100;
 export const HEIGHT_MAX_CM = 220;

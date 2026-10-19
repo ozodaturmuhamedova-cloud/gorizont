@@ -9,6 +9,8 @@ import { DEMO_APARTMENT_ID, strings } from '../ui/strings';
 vi.mock('../scene2d/FloorPlanStage', () => ({
   FloorPlanStage: () => <div data-testid="floor-plan" />,
 }));
+// в jsdom нет WebGL: страница 3D покажет 2D-планировку
+vi.mock('../scene3d/webgl', () => ({ hasWebGL: () => false }));
 
 function renderAt(path: string) {
   const router = createMemoryRouter(routes, { initialEntries: [path] });

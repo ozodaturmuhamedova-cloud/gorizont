@@ -3,7 +3,7 @@
  * Компоненты читают его селекторами: useStore((s) => s.floor).
  */
 import { create, type StateCreator } from 'zustand';
-import { building, findApartment } from '../data';
+import { building, defaultFinish, findApartment, findFinish } from '../data';
 import { DEFAULT_FILTERS, type ApartmentFilters } from '../domain/filters';
 
 export interface SelectionSlice {
@@ -21,12 +21,21 @@ export interface FiltersSlice {
   resetFilters: () => void;
 }
 
+export interface FurnishSlice {
+  /** Выбранная отделка. В фазе 5 слайс получит мебель и сохранение в localStorage. */
+  finishId: string;
+  setFinish: (id: string) => void;
+}
+
 export interface UiSlice {
   hoveredId: string | null;
   setHovered: (id: string | null) => void;
+  /** 3D: «срез стен» — стены по пояс, чтобы видеть комнаты сверху. */
+  wallsCut: boolean;
+  setWallsCut: (cut: boolean) => void;
 }
 
-export type StoreState = SelectionSlice & FiltersSlice & UiSlice;
+export type StoreState = SelectionSlice & FiltersSlice & FurnishSlice & UiSlice;
 
 const createSelectionSlice: StateCreator<StoreState, [], [], SelectionSlice> = (set) => ({
   floor: building.floors,
@@ -52,14 +61,22 @@ const createFiltersSlice: StateCreator<StoreState, [], [], FiltersSlice> = (set)
   resetFilters: () => set({ filters: DEFAULT_FILTERS }),
 });
 
+const createFurnishSlice: StateCreator<StoreState, [], [], FurnishSlice> = (set) => ({
+  finishId: defaultFinish.id,
+  setFinish: (id) => set((s) => (findFinish(id) ? { finishId: id } : s)),
+});
+
 const createUiSlice: StateCreator<StoreState, [], [], UiSlice> = (set) => ({
   hoveredId: null,
   setHovered: (id) => set({ hoveredId: id }),
+  wallsCut: false,
+  setWallsCut: (cut) => set({ wallsCut: cut }),
 });
 
 export const useStore = create<StoreState>()((...a) => ({
   ...createSelectionSlice(...a),
   ...createFiltersSlice(...a),
+  ...createFurnishSlice(...a),
   ...createUiSlice(...a),
 }));
 

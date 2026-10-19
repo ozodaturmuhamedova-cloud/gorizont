@@ -41,3 +41,20 @@ describe('стор: выбор этажа и квартиры', () => {
     expect(useStore.getState().apartmentId).toBeNull();
   });
 });
+
+describe('стор: отделка и срез стен', () => {
+  beforeEach(() => useStore.setState(initialStoreState, true));
+
+  it('по умолчанию первая отделка, неизвестная игнорируется', () => {
+    expect(useStore.getState().finishId).toBe('scandi');
+    useStore.getState().setFinish('loft');
+    expect(useStore.getState().finishId).toBe('loft');
+    useStore.getState().setFinish('nope');
+    expect(useStore.getState().finishId).toBe('loft');
+  });
+
+  it('срез стен включается и выключается', () => {
+    useStore.getState().setWallsCut(true);
+    expect(useStore.getState().wallsCut).toBe(true);
+  });
+});

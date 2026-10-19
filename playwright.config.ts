@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 5173;
+// В CI нет видеокарты: WebGL идёт через программный SwiftShader
+const launchOptions = { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] };
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -13,8 +15,8 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], launchOptions } },
+    { name: 'mobile', use: { ...devices['Pixel 7'], launchOptions } },
   ],
   webServer: {
     command: `npm run dev -- --port ${PORT} --strictPort`,
