@@ -9,7 +9,12 @@ test('скриншот: план 9 этажа с выбранной кв. 51', a
   await page.waitForFunction(() => window.__gorizontPlan?.apartmentPoint('s1-f9-a3') != null);
   await page.getByRole('button', { name: 'Кв. 51, свободна' }).click();
   await page.waitForTimeout(300);
-  await page.screenshot({ path: `screens/plan-${info.project.name}.png`, fullPage: true });
+  // fullPage только на телефоне: на десктопе страница и так помещается, а смена
+  // размера окна при съёмке перерисовывает план
+  await page.screenshot({
+    path: `screens/plan-${info.project.name}.png`,
+    fullPage: info.project.name === 'mobile',
+  });
 });
 
 test('скриншот: тултип над квартирой', async ({ page, isMobile }, info) => {
@@ -20,4 +25,15 @@ test('скриншот: тултип над квартирой', async ({ page, 
   await page.mouse.move(p!.x, p!.y);
   await page.waitForTimeout(200);
   await page.screenshot({ path: `screens/tooltip-${info.project.name}.png` });
+});
+
+test('скриншот: приближенная выбранная квартира', async ({ page }, info) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__gorizontPlan?.apartmentPoint('s1-f9-a6') != null);
+  await page.getByRole('button', { name: 'Кв. 54, свободна' }).click();
+  for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Приблизить' }).click();
+  await page.waitForTimeout(200);
+  await page
+    .getByTestId('floor-plan')
+    .screenshot({ path: `screens/zoomed-${info.project.name}.png` });
 });

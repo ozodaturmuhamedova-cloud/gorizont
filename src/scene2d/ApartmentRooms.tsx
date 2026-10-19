@@ -1,18 +1,22 @@
-import { Group, Line, Text } from 'react-konva';
+import { Group, Line } from 'react-konva';
 import { formatArea } from '../domain/format';
 import { bbox, openingSpan, polygonArea, polygonCentroid } from '../domain/geometry';
+import { labelPx } from '../domain/planView';
 import type { Apartment } from '../domain/types';
 import { strings } from '../ui/strings';
 import { PLAN_COLORS } from './colors';
+import { PlanLabel } from './PlanLabel';
 
-const LABEL_SIZE = 0.36;
-const AREA_SIZE = 0.3;
-const FONT = 'Onest, system-ui, sans-serif';
+const NAME = { size: 0.36, minPx: 9, maxPx: 15 };
+const AREA = { size: 0.3, minPx: 8, maxPx: 13 };
 /** Перекрытие проёма чуть шире стены, чтобы не оставалось щелей. */
 const OPENING_OVERLAP = 0.02;
+/** Подписи не показываются, если комната на экране уже/ниже, px. */
+const MIN_ROOM_WIDTH_PX = 44;
+const MIN_ROOM_HEIGHT_PX = 34;
 
 /** Детализация выбранной квартиры: комнаты с подписями, стены, двери, окна. Без событий. */
-export function ApartmentRooms({ apartment: a }: { apartment: Apartment }) {
+export function ApartmentRooms({ apartment: a, scale }: { apartment: Apartment; scale: number }) {
   return (
     <Group listening={false} name="apartment-rooms">
       {a.roomsGeometry.map((r) => (
@@ -42,32 +46,35 @@ export function ApartmentRooms({ apartment: a }: { apartment: Apartment }) {
         );
       })}
       {a.roomsGeometry.map((r) => {
-        const [cx, cy] = polygonCentroid(r.polygon);
         const { min, max } = bbox(r.polygon);
         const width = max[0] - min[0];
+        const height = max[1] - min[1];
+        if (width * scale < MIN_ROOM_WIDTH_PX) return null;
+        const at = polygonCentroid(r.polygon);
+        const twoLines =
+          height * scale >= MIN_ROOM_HEIGHT_PX + labelPx(AREA.size, scale, AREA.minPx, AREA.maxPx);
         return (
           <Group key={`l-${r.id}`}>
-            <Text
-              x={cx - width / 2}
-              y={cy - LABEL_SIZE}
+            <PlanLabel
+              at={at}
               width={width}
-              align="center"
               text={strings.roomTypes[r.type]}
-              fontSize={LABEL_SIZE}
-              fontFamily={FONT}
-              fontStyle="600"
-              fill={PLAN_COLORS.ink}
+              scale={scale}
+              {...NAME}
+              line={twoLines ? -0.55 : 0}
+              bold
             />
-            <Text
-              x={cx - width / 2}
-              y={cy + 0.05}
-              width={width}
-              align="center"
-              text={formatArea(polygonArea(r.polygon))}
-              fontSize={AREA_SIZE}
-              fontFamily={FONT}
-              fill={PLAN_COLORS.label}
-            />
+            {twoLines && (
+              <PlanLabel
+                at={at}
+                width={width}
+                text={formatArea(polygonArea(r.polygon))}
+                scale={scale}
+                {...AREA}
+                line={0.75}
+                color={PLAN_COLORS.label}
+              />
+            )}
           </Group>
         );
       })}

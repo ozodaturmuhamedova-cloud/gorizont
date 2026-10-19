@@ -1,7 +1,7 @@
 import Konva from 'konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Layer, Line, Stage, Text } from 'react-konva';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Layer, Line, Stage } from 'react-konva';
 import { PLAN_WHEEL_STEP } from '../domain/constants';
 import { formatArea, formatPrice } from '../domain/format';
 import { bbox, polygonCentroid } from '../domain/geometry';
@@ -21,12 +21,13 @@ import { ApartmentRooms } from './ApartmentRooms';
 import { ApartmentShape } from './ApartmentShape';
 import { PLAN_COLORS, STATUS_COLORS } from './colors';
 import { MiniMap } from './MiniMap';
+import { PlanLabel } from './PlanLabel';
 
 // Чтобы pinch работал, пока сцена перетаскивается одним пальцем
 Konva.hitOnDragEnabled = true;
 
-const LABEL_SIZE = 0.5;
-const FONT = 'Onest, system-ui, sans-serif';
+/** Подписи подложки: желаемый размер в метрах и границы в пикселях. */
+const BG_LABEL = { size: 0.45, minPx: 9, maxPx: 13 };
 /** Сдвиг до того, как нажатие считается перетаскиванием, а не кликом, px. */
 const DRAG_DISTANCE = 4;
 const TOOLTIP_OFFSET = 14;
@@ -83,8 +84,8 @@ export function FloorPlanStage(props: FloorPlanStageProps) {
     return () => ro.disconnect();
   }, []);
 
-  // При смене этажа или размера окна — снова весь этаж
-  useEffect(() => {
+  // При смене этажа или размера окна — снова весь этаж (до отрисовки, без кадра со старым видом)
+  useLayoutEffect(() => {
     if (fit) setView(fit);
   }, [fit, floor]);
 
@@ -228,39 +229,27 @@ export function FloorPlanStage(props: FloorPlanStageProps) {
               />
             ))}
             {floorPlate.core.map((c, i) => {
-              const [cx, cy] = polygonCentroid(c.polygon);
               const { min, max } = bbox(c.polygon);
-              const w = max[0] - min[0];
               return (
-                <Text
+                <PlanLabel
                   key={`t-${i}`}
-                  x={cx - w / 2}
-                  y={cy - LABEL_SIZE / 2}
-                  width={w}
-                  align="center"
+                  at={polygonCentroid(c.polygon)}
+                  width={max[0] - min[0]}
                   text={c.type === 'stairs' ? strings.plan.stairs : strings.plan.lift}
-                  fontSize={LABEL_SIZE * 0.8}
-                  fontFamily={FONT}
-                  fill={PLAN_COLORS.label}
+                  scale={view.scale}
+                  {...BG_LABEL}
+                  color={PLAN_COLORS.label}
                 />
               );
             })}
-            {(() => {
-              const { min, max } = bbox(floorPlate.corridor);
-              return (
-                <Text
-                  x={min[0]}
-                  y={(min[1] + max[1]) / 2 - LABEL_SIZE / 2}
-                  width={max[0] - min[0]}
-                  align="center"
-                  text={strings.plan.corridor}
-                  fontSize={LABEL_SIZE}
-                  fontFamily={FONT}
-                  fill={PLAN_COLORS.label}
-                  letterSpacing={0.08}
-                />
-              );
-            })()}
+            <PlanLabel
+              at={polygonCentroid(floorPlate.corridor)}
+              width={bbox(floorPlate.corridor).max[0] - bbox(floorPlate.corridor).min[0]}
+              text={strings.plan.corridor}
+              scale={view.scale}
+              {...BG_LABEL}
+              color={PLAN_COLORS.label}
+            />
           </Layer>
 
           {/* Квартиры: единственный интерактивный слой */}
@@ -272,6 +261,7 @@ export function FloorPlanStage(props: FloorPlanStageProps) {
                 hovered={a.id === hoveredId}
                 selected={a.id === selectedId}
                 dimmed={matchingIds ? !matchingIds.has(a.id) : false}
+                scale={view.scale}
                 onHover={onHover}
                 onSelect={onSelect}
               />
@@ -279,7 +269,9 @@ export function FloorPlanStage(props: FloorPlanStageProps) {
           </Layer>
 
           {/* Детализация выбранной квартиры поверх, без событий */}
-          <Layer listening={false}>{selected && <ApartmentRooms apartment={selected} />}</Layer>
+          <Layer listening={false}>
+            {selected && <ApartmentRooms apartment={selected} scale={view.scale} />}
+          </Layer>
         </Stage>
       )}
 

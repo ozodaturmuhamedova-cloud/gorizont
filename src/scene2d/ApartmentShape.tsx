@@ -1,16 +1,18 @@
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { memo } from 'react';
-import { Group, Line, Text } from 'react-konva';
+import { Group, Line } from 'react-konva';
 import { PLAN_FILTERED_OPACITY } from '../domain/constants';
 import { bbox, polygonCentroid } from '../domain/geometry';
 import type { Apartment } from '../domain/types';
 import { strings } from '../ui/strings';
 import { PLAN_COLORS, STATUS_COLORS } from './colors';
+import { PlanLabel } from './PlanLabel';
 
-/** Размеры подписей в метрах: масштабируются вместе с планом. */
-const NUMBER_SIZE = 0.95;
-const META_SIZE = 0.42;
-const FONT = 'Onest, system-ui, sans-serif';
+/** Желаемые размеры подписей в метрах плана; на экране — в пределах min/max px. */
+const NUMBER = { size: 0.95, minPx: 11, maxPx: 26 };
+const META = { size: 0.42, minPx: 9, maxPx: 14 };
+/** Мельче этого строка «2к · 63 м²» не показывается, px. */
+const META_HIDE_BELOW_PX = 6;
 
 export interface ApartmentShapeProps {
   apartment: Apartment;
@@ -18,6 +20,8 @@ export interface ApartmentShapeProps {
   selected: boolean;
   /** Не прошла фильтр (фаза 3): остаётся на плане, но бледнее. */
   dimmed?: boolean;
+  /** Масштаб плана, px/м — для подписей в экранных пикселях. */
+  scale: number;
   onHover: (id: string | null) => void;
   onSelect: (id: string) => void;
 }
@@ -27,6 +31,7 @@ export const ApartmentShape = memo(function ApartmentShape({
   hovered,
   selected,
   dimmed = false,
+  scale,
   onHover,
   onSelect,
 }: ApartmentShapeProps) {
@@ -74,29 +79,27 @@ export const ApartmentShape = memo(function ApartmentShape({
       />
       {!selected && (
         <>
-          <Text
-            x={cx - width / 2}
-            y={cy - NUMBER_SIZE * 0.85}
+          <PlanLabel
+            at={[cx, cy]}
             width={width}
-            align="center"
             text={String(a.number)}
-            fontSize={NUMBER_SIZE}
-            fontFamily={FONT}
-            fontStyle="600"
-            fill={sold ? PLAN_COLORS.label : PLAN_COLORS.ink}
-            listening={false}
+            scale={scale}
+            {...NUMBER}
+            line={-0.35}
+            bold
+            color={sold ? PLAN_COLORS.label : PLAN_COLORS.ink}
           />
-          <Text
-            x={cx - width / 2}
-            y={cy + NUMBER_SIZE * 0.3}
-            width={width}
-            align="center"
-            text={`${strings.apartment.roomsShort(a.rooms)} · ${a.area.toLocaleString('ru-RU')} м²`}
-            fontSize={META_SIZE}
-            fontFamily={FONT}
-            fill={PLAN_COLORS.label}
-            listening={false}
-          />
+          {META.size * scale >= META_HIDE_BELOW_PX && (
+            <PlanLabel
+              at={[cx, cy]}
+              width={width}
+              text={`${strings.apartment.roomsShort(a.rooms)} · ${a.area.toLocaleString('ru-RU')} м²`}
+              scale={scale}
+              {...META}
+              line={1.3}
+              color={PLAN_COLORS.label}
+            />
+          )}
         </>
       )}
     </Group>

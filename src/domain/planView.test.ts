@@ -3,6 +3,7 @@ import { PLAN_ZOOM_MAX, PLAN_ZOOM_MIN } from './constants';
 import {
   centerOn,
   fitView,
+  labelPx,
   pinchStep,
   screenToWorld,
   visibleBounds,
@@ -95,5 +96,13 @@ describe('pinch, видимая область, центрирование', () 
     const [x, y] = worldToScreen(z, [5, 5]);
     expect(x).toBeCloseTo(400, 9);
     expect(y).toBeCloseTo(300, 9);
+  });
+});
+
+describe('размер подписей', () => {
+  it('растёт с масштабом в пределах границ', () => {
+    expect(labelPx(0.95, 5, 11, 26)).toBe(11);
+    expect(labelPx(0.95, 20, 11, 26)).toBeCloseTo(19, 9);
+    expect(labelPx(0.95, 100, 11, 26)).toBe(26);
   });
 });

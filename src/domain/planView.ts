@@ -87,3 +87,8 @@ export function pinchStep(
   const zoomed = zoomAt(v, prev.center, next.dist / Math.max(prev.dist, 1e-6), fitScale);
   return panBy(zoomed, next.center[0] - prev.center[0], next.center[1] - prev.center[1]);
 }
+
+/** Размер подписи на экране, px: растёт с масштабом, но в пределах [minPx, maxPx]. */
+export function labelPx(size: number, scale: number, minPx: number, maxPx: number): number {
+  return Math.min(maxPx, Math.max(minPx, size * scale));
+}
