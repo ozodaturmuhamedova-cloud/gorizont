@@ -26,9 +26,11 @@ test.describe('поэтажный план', () => {
     await expect(page).toHaveURL(/\/apartment\/s1-f9-a3\/3d$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Квартира 51 в 3D' })).toBeVisible();
 
+    // возврат сохраняет этаж и выбор: стор живёт в памяти, адрес снова отражает состояние
     await page.getByRole('link', { name: /Назад к плану/ }).click();
-    await expect(page).toHaveURL(/\/$/);
+    await expect(page).toHaveURL(/\/\?apt=s1-f9-a3$/);
     await expect(page.getByRole('heading', { level: 1 })).toContainText('9 этаж');
+    await expect(page.getByRole('complementary', { name: 'Кв. 51' })).toBeVisible();
   });
 
   test('проданная квартира не выбирается, но показывает тултип', async ({ page, isMobile }) => {
