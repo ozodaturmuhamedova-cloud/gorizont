@@ -5,7 +5,17 @@
 import { describe, expect, it } from 'vitest';
 import { building, furniture } from '../../data';
 import { parseBuilding } from '../../domain/data';
+import {
+  HARD_RULES,
+  WALK_CHECK_HEIGHT_CM,
+  roomAt,
+  shapesInRoom,
+  unreachableItems,
+  violations,
+  zonesFor,
+} from '../../domain/layout';
 import { ROOM_COUNTS } from '../../domain/types';
+import { collisionRadius } from '../../domain/walk';
 import {
   REGRESSION_SEEDS,
   apartmentViolations,
@@ -133,14 +143,45 @@ describe('инварианты на диапазоне seed’ов', () => {
     expect(collect((s) => plausibilityViolations(randomApartment(s)))).toEqual([]);
   });
 
-  it('мебель стоит без нарушений при любой плотности', () => {
+  it('мебель стоит без нарушений при любой плотности, и к каждому предмету можно подойти', () => {
+    const radius = collisionRadius(WALK_CHECK_HEIGHT_CM);
     for (const density of ['sparse', 'normal', 'dense'] as const) {
       const v = collect((s) => {
         const f = randomFurnished(s, { density });
-        return furnitureViolations(f.apartment, f.placed, furniture).map((x) => x.message);
+        const out = furnitureViolations(f.apartment, f.placed, furniture).map((x) => x.message);
+        for (const room of f.apartment.roomsGeometry) {
+          const shapes = shapesInRoom(f.apartment, room.id, f.placed, furniture);
+          const z = zonesFor(f.apartment, room);
+          shapes.forEach((sh, i) => {
+            for (const x of violations(
+              sh,
+              z,
+              shapes.filter((_, j) => j !== i),
+            )) {
+              if (HARD_RULES.has(x.rule))
+                out.push(`${density} ${room.id}/${sh.item.id}: ${x.rule}`);
+            }
+          });
+          for (const i of unreachableItems(z, shapes, radius)) {
+            out.push(`${density} ${room.id}: к «${shapes[i]!.item.id}» не подойти`);
+          }
+        }
+        return out;
       });
       expect(v).toEqual([]);
     }
+  });
+
+  it('autoLayout ставит почти всё: в каждой комнате с набором есть хотя бы один предмет', () => {
+    const v = collect((s) => {
+      const f = randomFurnished(s);
+      return f.apartment.roomsGeometry
+        .filter((r) => r.type !== 'balcony')
+        .filter((r) => !f.placed.some((p) => roomAt(f.apartment, p.position)?.id === r.id))
+        .map((r) => `пустая комната ${r.id} (${r.type})`);
+    });
+    // крошечная кухня-ниша иногда остаётся пустой — допускаем единицы на сотни квартир
+    expect(v.length).toBeLessThan(seeds.length / 20);
   });
 
   it('allowInvalid: каждое внедрённое нарушение обнаруживается', () => {
@@ -168,11 +209,11 @@ describe('инварианты на диапазоне seed’ов', () => {
     expect(v).toEqual([]);
   });
 
-  it('генерация квартиры с мебелью укладывается в 20 мс', () => {
-    const n = 100;
+  it('генерация квартиры с мебелью укладывается в бюджет autoLayout: < 150 мс на квартиру', () => {
+    const n = 50;
     const t0 = performance.now();
     for (let s = 1; s <= n; s++) randomFurnished(s);
-    expect((performance.now() - t0) / n).toBeLessThan(20);
+    expect((performance.now() - t0) / n).toBeLessThan(150);
   });
 });
 
@@ -185,7 +226,7 @@ describe('инварианты на реальных данных', () => {
     expect(v).toEqual([]);
   });
 
-  it('временный размещатель расставляет мебель и в реальных квартирах', () => {
+  it('autoLayout расставляет случайный набор и в реальных квартирах', () => {
     for (const l of building.layouts) {
       const apartment = building.apartments.find((a) => a.layoutId === l.id)!;
       const f = randomFurnished(1, { apartment });

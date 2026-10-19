@@ -26,6 +26,6 @@ export default defineConfig(({ mode }) => ({
     css: false,
     // npm run test:fuzz → vitest --mode fuzz → seedRange() отдаёт 1…5000 вместо 1…200
     env: { FUZZ: mode === 'fuzz' ? '1' : '' },
-    testTimeout: mode === 'fuzz' ? 600_000 : 30_000,
+    testTimeout: mode === 'fuzz' ? 1_800_000 : 120_000,
   },
 }));

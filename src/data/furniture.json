@@ -196,6 +196,7 @@
       "placement": "wall",
       "clearance": { "front": 0.8, "sides": 0.15, "back": 0 },
       "priority": 75,
+      "group": "lounge",
       "pairWith": { "itemId": "tvstand", "distance": [2.0, 4.0], "facing": true },
       "compactAlt": "sofa2"
     },
@@ -210,6 +211,7 @@
       "placement": "wall",
       "clearance": { "front": 0.8, "sides": 0.15, "back": 0 },
       "priority": 74,
+      "group": "lounge",
       "pairWith": { "itemId": "tvstand", "distance": [1.8, 3.5], "facing": true }
     },
     {
@@ -234,7 +236,8 @@
       "category": "table",
       "placement": "center",
       "clearance": { "front": 0.3, "sides": 0.3, "back": 0.3 },
-      "priority": 35
+      "priority": 35,
+      "group": "lounge"
     },
     {
       "id": "tvstand",
