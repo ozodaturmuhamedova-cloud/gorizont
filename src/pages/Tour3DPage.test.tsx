@@ -23,6 +23,8 @@ vi.mock('../scene3d/ApartmentScene', () => ({
   ),
 }));
 vi.mock('../scene3d/webgl', () => ({ hasWebGL: vi.fn(() => true) }));
+// роутер подключает и страницу плана, а Konva в jsdom не работает
+vi.mock('../scene2d/FloorPlanStage', () => ({ FloorPlanStage: () => null }));
 
 const ID = 's1-f9-a3';
 const apt = findApartment(ID)!;
