@@ -80,7 +80,7 @@ export function PlanPage() {
           />
         </div>
         <div className="order-1 flex min-w-0 flex-col gap-2 lg:order-none">
-          <div className="h-[56vh] min-h-[340px] lg:h-[min(640px,calc(100vh-240px))]">
+          <div className="h-[min(56vh,82vw)] min-h-[300px] lg:h-[min(640px,calc(100vh-240px))]">
             <FloorPlanStage
               floor={floor}
               floorPlate={building.floorPlate}
