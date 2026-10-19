@@ -19,6 +19,8 @@ export {
   doorZones,
   furnitureViolations,
   plausibilityViolations,
+  WALK_CHECK_HEIGHTS,
+  walkViolations,
   windowZones,
   type FurnitureViolation,
 } from './invariants';

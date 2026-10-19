@@ -64,3 +64,19 @@ export const LAYOUT_JITTER = 3;
 export const ROTATE_STEP = Math.PI / 12;
 /** Смещение указателя, после которого нажатие считается перетаскиванием, а не кликом, px. */
 export const CLICK_TOLERANCE_PX = 6;
+
+// ---------- прогулка (§7.1) ----------
+/** Ускорение с Shift. */
+export const WALK_SPRINT = 1.5;
+/** Максимальный шаг за одну итерацию коллизий — доля радиуса (не «пролетать» сквозь стены). */
+export const WALK_SUBSTEP_RATIO = 0.5;
+/** Итерации выталкивания из препятствий за шаг. */
+export const WALK_PUSH_ITERATIONS = 4;
+/** Отступ точки старта от входной двери вглубь прихожей, м (к нему добавляется радиус). */
+export const WALK_START_OFFSET = 0.35;
+/** Шаг сетки поиска пути и поиска ближайшей свободной точки, м. */
+export const WALK_GRID = 0.1;
+/** Ограничение наклона взгляда вверх/вниз, рад. */
+export const WALK_PITCH_LIMIT = 1.35;
+/** Длительность перехода камеры Orbit ↔ Walk, с. */
+export const CAMERA_TRANSITION = 0.8;

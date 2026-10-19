@@ -9,7 +9,12 @@ import { collisionRadius } from '../walk';
 import { candidatesFor, relativeCandidates } from './candidates';
 import { fits, shapeOf, violations, type Shape } from './fits';
 import { freeChairSlots, scoreCandidate, W } from './score';
-import { unreachableItems, WALK_CHECK_HEIGHT_CM } from './walkable';
+import {
+  blockedDoors,
+  unreachableItems,
+  WALK_CHECK_HEIGHT_CM,
+  WALK_PASS_HEIGHT_CM,
+} from './walkable';
 import { zonesFor, type RoomZones } from './zones';
 
 /** Сколько лучших кандидатов помнить для отката. */
@@ -18,6 +23,8 @@ export const TOP_K = 3;
 export const BACKTRACK_DEPTH = 3;
 /** Всего попыток (подборов кандидатов) на комнату. */
 export const LAYOUT_BUDGET = 200;
+/** Запас к радиусу крупного посетителя при проверке прохода между дверями, м. */
+export const PASS_MARGIN = 0.08;
 /** Меньше стольких стульев стол не ставится (§7.2, «Группы»). */
 export const MIN_CHAIRS = 2;
 /** Сколько лучших кандидатов проверять на проходимость. */
@@ -95,6 +102,9 @@ export function autoLayout(
   const ctxBase = { zones: z, rng, jitter: opts.jitter };
   let budget = opts.budget ?? LAYOUT_BUDGET;
   const radius = collisionRadius(WALK_CHECK_HEIGHT_CM);
+  // между дверями проходной комнаты должен пройти и крупный посетитель
+  // (с запасом на дискретность сетки: прогулка проверяет путь своей сеткой)
+  const passRadius = collisionRadius(WALK_PASS_HEIGHT_CM) + PASS_MARGIN;
 
   const companionsOf = (item: FurnitureItem) =>
     item.group
@@ -129,7 +139,10 @@ export function autoLayout(
     const walkable: Option[] = [];
     for (let k = 0; k < out.length && k < WALK_CHECKS && walkable.length < TOP_K; k++) {
       const o = out[k]!;
-      if (unreachableItems(z, [...placed, o.shape], radius).length === 0) walkable.push(o);
+      const all = [...placed, o.shape];
+      if (unreachableItems(z, all, radius).length === 0 && blockedDoors(z, all, passRadius) === 0) {
+        walkable.push(o);
+      }
     }
     return walkable;
   };
@@ -211,10 +224,13 @@ export function autoLayout(
 
   // страховка: каждый шаг уже проверен на проходимость, но откат мог её нарушить —
   // тогда убираем недоступный предмет с наименьшим приоритетом
-  for (;;) {
-    const bad = unreachableItems(z, shapesOf(steps), radius);
-    if (bad.length === 0) break;
-    const worst = bad.reduce((a, b) =>
+  while (steps.length > 0) {
+    const shapes = shapesOf(steps);
+    const bad = unreachableItems(z, shapes, radius);
+    if (bad.length === 0 && blockedDoors(z, shapes, passRadius) === 0) break;
+    // недоступный предмет с наименьшим приоритетом, а если отрезаны двери — последний поставленный
+    const candidates = bad.length > 0 ? bad : [steps.length - 1];
+    const worst = candidates.reduce((a, b) =>
       steps[b]!.wanted.priority <= steps[a]!.wanted.priority ? b : a,
     );
     skipped.push({ itemId: steps[worst]!.wanted.id, roomId: room.id, reason: 'noAccess' });

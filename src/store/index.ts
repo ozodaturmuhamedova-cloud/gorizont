@@ -8,6 +8,7 @@ import { building, defaultFinish, findApartment, findFinish } from '../data';
 import { DEFAULT_FILTERS, type ApartmentFilters } from '../domain/filters';
 import type { SkippedItem } from '../domain/layout';
 import type { PlacedFurniture, RoomType } from '../domain/types';
+import { isValidHeight, type WalkPose } from '../domain/walk';
 
 export interface SelectionSlice {
   floor: number;
@@ -39,7 +40,30 @@ export interface FurnishSlice {
   setFurniture: (aptId: string, list: PlacedFurniture[], skipped?: SkippedItem[]) => void;
 }
 
+export type CameraMode = 'orbit' | 'walk';
+
+export interface VisitorSlice {
+  /** Рост посетителя, см; null — ещё не указан (§7.1). Сохраняется в localStorage. */
+  heightCm: number | null;
+  /** Задать рост; вне диапазона 100–220 см игнорируется. */
+  setHeight: (cm: number) => void;
+  heightDialogOpen: boolean;
+  setHeightDialogOpen: (open: boolean) => void;
+  /** Позиция в прогулке для HUD и мини-плана — не чаще 10 раз в секунду. */
+  walkPose: WalkPose | null;
+  setWalkPose: (pose: WalkPose | null) => void;
+}
+
 export interface UiSlice {
+  cameraMode: CameraMode;
+  /**
+   * Перейти в прогулку или обратно. Без роста в прогулку не войти: вместо этого
+   * открывается окно роста.
+   */
+  setCameraMode: (mode: CameraMode) => void;
+  /** Прогулка на десктопе: мышь захвачена (pointer lock). */
+  pointerLocked: boolean;
+  setPointerLocked: (locked: boolean) => void;
   hoveredId: string | null;
   setHovered: (id: string | null) => void;
   /** 3D: «срез стен» — стены по пояс, чтобы видеть комнаты сверху. */
@@ -56,7 +80,7 @@ export interface UiSlice {
   setCatalogRoom: (room: RoomType) => void;
 }
 
-export type StoreState = SelectionSlice & FiltersSlice & FurnishSlice & UiSlice;
+export type StoreState = SelectionSlice & FiltersSlice & FurnishSlice & UiSlice & VisitorSlice;
 
 const createSelectionSlice: StateCreator<StoreState, [], [], SelectionSlice> = (set) => ({
   floor: building.floors,
@@ -109,7 +133,26 @@ const createFurnishSlice: StateCreator<StoreState, [], [], FurnishSlice> = (set)
   };
 };
 
+const createVisitorSlice: StateCreator<StoreState, [], [], VisitorSlice> = (set) => ({
+  heightCm: null,
+  setHeight: (cm) => set((s) => (isValidHeight(cm) ? { heightCm: Math.round(cm) } : s)),
+  heightDialogOpen: false,
+  setHeightDialogOpen: (open) => set({ heightDialogOpen: open }),
+  walkPose: null,
+  setWalkPose: (pose) => set({ walkPose: pose }),
+});
+
 const createUiSlice: StateCreator<StoreState, [], [], UiSlice> = (set) => ({
+  cameraMode: 'orbit',
+  setCameraMode: (mode) =>
+    set((s) => {
+      if (mode === 'orbit') return { cameraMode: 'orbit', pointerLocked: false, walkPose: null };
+      if (s.heightCm === null) return { heightDialogOpen: true };
+      // в прогулке мебель не расставляют
+      return { cameraMode: 'walk', placingItemId: null, selectedFurniture: null };
+    }),
+  pointerLocked: false,
+  setPointerLocked: (locked) => set({ pointerLocked: locked }),
   hoveredId: null,
   setHovered: (id) => set({ hoveredId: id }),
   wallsCut: false,
@@ -127,10 +170,11 @@ export const STORAGE_KEY = 'gorizont';
 /** Квартиры /dev/random не сохраняются. */
 const isTransient = (aptId: string) => aptId.startsWith('rnd');
 
-/** Что сохраняется между визитами: мебель и отделка (CLAUDE.md §8). */
-export function persistedPart(s: StoreState): Pick<StoreState, 'placed' | 'finishId'> {
+/** Что сохраняется между визитами: мебель, отделка и рост (CLAUDE.md §8). */
+export function persistedPart(s: StoreState): Pick<StoreState, 'placed' | 'finishId' | 'heightCm'> {
   return {
     finishId: s.finishId,
+    heightCm: s.heightCm,
     placed: Object.fromEntries(Object.entries(s.placed).filter(([id]) => !isTransient(id))),
   };
 }
@@ -142,6 +186,7 @@ export const useStore = create<StoreState>()(
       ...createFiltersSlice(...a),
       ...createFurnishSlice(...a),
       ...createUiSlice(...a),
+      ...createVisitorSlice(...a),
     }),
     {
       name: STORAGE_KEY,
@@ -154,6 +199,7 @@ export const useStore = create<StoreState>()(
           ...current,
           finishId: s.finishId && findFinish(s.finishId) ? s.finishId : current.finishId,
           placed: s.placed && typeof s.placed === 'object' ? s.placed : current.placed,
+          heightCm: typeof s.heightCm === 'number' && isValidHeight(s.heightCm) ? s.heightCm : null,
         };
       },
     },

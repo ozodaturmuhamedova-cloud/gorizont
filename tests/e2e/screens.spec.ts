@@ -116,3 +116,23 @@ test('скриншот: призрак предмета и подсказка', 
     .getByRole('img', { name: '3D-модель квартиры 51' })
     .screenshot({ path: `screens/3d-ghost-${info.project.name}.png` });
 });
+
+test('скриншот: прогулка на высоте глаз', async ({ page }, info) => {
+  await page.goto('/apartment/s1-f9-a3/3d');
+  await page.waitForFunction(() => (window.__gorizont3d?.frames() ?? 0) >= 1, null, {
+    timeout: 20_000,
+  });
+  await page.getByRole('button', { name: 'Готовый комплект' }).click();
+  await page.getByRole('button', { name: 'Прогуляться' }).click();
+  await page.getByRole('spinbutton', { name: 'Ваш рост, см' }).fill('175');
+  await page.getByRole('button', { name: 'Начать' }).click();
+  await page.waitForFunction(() => window.__gorizontWalk != null);
+  await page.waitForTimeout(1200);
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(900);
+  await page.keyboard.up('KeyW');
+  await page.waitForTimeout(300);
+  await page
+    .getByRole('img', { name: '3D-модель квартиры 51' })
+    .screenshot({ path: `screens/walk-${info.project.name}.png` });
+});

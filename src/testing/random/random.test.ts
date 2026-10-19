@@ -25,6 +25,7 @@ import {
   randomApartment,
   randomFurnished,
   seedRange,
+  walkViolations,
 } from './index';
 
 const seeds = seedRange();
@@ -184,6 +185,18 @@ describe('инварианты на диапазоне seed’ов', () => {
     expect(v.length).toBeLessThan(seeds.length / 20);
   });
 
+  it('прогулка: из прихожей для роста 150 и 195 см достижима каждая комната', () => {
+    expect(collect((s) => walkViolations(randomApartment(s)))).toEqual([]);
+  });
+
+  it('прогулка с мебелью: ни одна комната не отрезана расстановкой', () => {
+    const v = collect((s) => {
+      const f = randomFurnished(s);
+      return walkViolations(f.apartment, f.placed, furniture);
+    });
+    expect(v).toEqual([]);
+  });
+
   it('allowInvalid: каждое внедрённое нарушение обнаруживается', () => {
     const missed = collect((s) => {
       const f = randomFurnished(s, { allowInvalid: true });
@@ -221,7 +234,7 @@ describe('инварианты на реальных данных', () => {
   it('квартиры building.json проходят те же проверки', () => {
     const v = building.layouts.flatMap((l) => {
       const apt = building.apartments.find((a) => a.layoutId === l.id)!;
-      return apartmentViolations(apt).map((m) => `${l.id}: ${m}`);
+      return [...apartmentViolations(apt), ...walkViolations(apt)].map((m) => `${l.id}: ${m}`);
     });
     expect(v).toEqual([]);
   });

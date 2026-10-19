@@ -11,7 +11,10 @@ import { useStore } from '../store';
 import { ApartmentMiniPlan } from '../ui/ApartmentMiniPlan';
 import { Catalog } from '../ui/Catalog';
 import { EstimatePanel } from '../ui/Estimate';
+import { isTouchDevice } from '../ui/device';
 import { FurnishToolbar } from '../ui/FurnishToolbar';
+import { HeightDialog } from '../ui/HeightDialog';
+import { WalkHUD } from '../ui/WalkHUD';
 import { strings } from '../ui/strings';
 import { NotFound } from './NotFound';
 
@@ -27,6 +30,9 @@ export default function Tour3DPage() {
   const setCut = useStore((s) => s.setWallsCut);
   const setFurniture = useStore((s) => s.setFurniture);
   const placed = useStore((s) => (apt ? s.placed[apt.id] : undefined)) ?? NO_FURNITURE;
+  const walking = useStore((s) => s.cameraMode === 'walk');
+  const setCameraMode = useStore((s) => s.setCameraMode);
+  const touch = useMemo(() => isTouchDevice(), []);
   const [resetKey, setResetKey] = useState(0);
   const presetSeed = useRef(0);
   const webgl = useMemo(() => hasWebGL(), []);
@@ -36,6 +42,8 @@ export default function Tour3DPage() {
     () => () => {
       useStore.getState().setPlacing(null);
       useStore.getState().selectFurniture(null);
+      useStore.getState().setCameraMode('orbit');
+      useStore.getState().setHeightDialogOpen(false);
     },
     [],
   );
@@ -71,11 +79,21 @@ export default function Tour3DPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {webgl && !walking && (
+            <button
+              type="button"
+              onClick={() => setCameraMode('walk')}
+              className="rounded-xl bg-brand px-3 py-2 text-sm font-medium text-white hover:opacity-90"
+            >
+              {strings.walk.start}
+            </button>
+          )}
           <button
             type="button"
+            disabled={walking}
             aria-pressed={cut}
             onClick={() => setCut(!cut)}
-            className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+            className={`rounded-xl border px-3 py-2 text-sm font-medium disabled:opacity-40 ${
               cut ? 'border-brand bg-brand text-white' : 'border-line bg-paper hover:border-brand'
             }`}
           >
@@ -83,8 +101,9 @@ export default function Tour3DPage() {
           </button>
           <button
             type="button"
+            disabled={walking}
             onClick={() => setResetKey((k) => k + 1)}
-            className="rounded-xl border border-line bg-paper px-3 py-2 text-sm font-medium hover:border-brand"
+            className="rounded-xl border border-line bg-paper px-3 py-2 text-sm font-medium hover:border-brand disabled:opacity-40"
           >
             {s.resetView}
           </button>
@@ -103,7 +122,11 @@ export default function Tour3DPage() {
                 <Suspense fallback={<PageLoader />}>
                   <ApartmentScene apartment={apt} finish={finish} cut={cut} resetKey={resetKey} />
                 </Suspense>
-                <FurnishToolbar apartment={apt} />
+                {walking ? (
+                  <WalkHUD apartment={apt} touch={touch} />
+                ) : (
+                  <FurnishToolbar apartment={apt} />
+                )}
               </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
@@ -161,9 +184,10 @@ export default function Tour3DPage() {
             onPreset={onPreset}
             onClear={() => setFurniture(apt.id, [])}
           />
-          <Catalog disabled={!webgl} />
+          <Catalog disabled={!webgl || walking} />
         </aside>
       </div>
+      <HeightDialog />
     </section>
   );
 }

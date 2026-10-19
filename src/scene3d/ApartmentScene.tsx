@@ -4,10 +4,14 @@ import * as THREE from 'three';
 import { orbitHome, sceneFrame } from '../domain/scene3d';
 import type { Apartment, Finish } from '../domain/types';
 import { CameraRig } from './CameraRig';
+import { ceilingOf } from '../domain/walk';
+import { useStore } from '../store';
+import { Ceiling } from './Ceiling';
 import { Floors } from './Floors';
 import { Furnishing } from './Furnishing';
 import { disposeFurnitureGeometries } from './furnitureGeometry';
 import { Lighting } from './Lighting';
+import { isTouchDevice } from '../ui/device';
 import { Openings } from './Openings';
 import { Walls } from './Walls';
 
@@ -70,12 +74,17 @@ export default function ApartmentScene({
   useEffect(() => disposeFurnitureGeometries, []);
   // стартовая позиция до первого кадра; дальше вид ведёт CameraRig с учётом пропорций окна
   const home = useMemo(() => orbitHome(frame, FOV), [frame]);
+  const walking = useStore((s) => s.cameraMode === 'walk' && s.heightCm !== null);
+  const ceiling = useMemo(() => ceilingOf(apartment), [apartment]);
+  const touch = useMemo(() => isTouchDevice(), []);
+  // в прогулке стены целые и виден потолок; мебель не расставляют
+  const wallsCut = cut && !walking;
 
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
-      frameloop="demand"
+      frameloop={walking ? 'always' : 'demand'}
       camera={{ fov: FOV, position: home.position, near: 0.1, far: 200 }}
       // нужен для скриншота сцены в заявку (фаза 6)
       gl={{ preserveDrawingBuffer: true, antialias: true }}
@@ -91,15 +100,16 @@ export default function ApartmentScene({
       <Lighting radius={frame.radius} />
       <group position={[-frame.center[0], 0, -frame.center[1]]}>
         <Floors apartment={apartment} finish={finish} />
-        <Walls apartment={apartment} color={finish.wall} cut={cut} />
-        <Openings apartment={apartment} cut={cut} />
-        <Furnishing apartment={apartment} center={frame.center} editable={editable} />
+        <Walls apartment={apartment} color={finish.wall} cut={wallsCut} />
+        <Openings apartment={apartment} cut={wallsCut} />
+        {walking && <Ceiling apartment={apartment} height={ceiling} />}
+        <Furnishing apartment={apartment} center={frame.center} editable={editable && !walking} />
       </group>
       <mesh rotation-x={-Math.PI / 2} position={[0, GROUND_Y, 0]} receiveShadow>
         <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
         <shadowMaterial transparent opacity={GROUND_SHADOW_OPACITY} />
       </mesh>
-      <CameraRig frame={frame} fov={FOV} resetKey={resetKey} />
+      <CameraRig apartment={apartment} frame={frame} fov={FOV} resetKey={resetKey} touch={touch} />
       <DevStats />
     </Canvas>
   );

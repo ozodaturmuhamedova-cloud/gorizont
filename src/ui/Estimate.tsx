@@ -102,7 +102,6 @@ export function EstimatePanel({ apartment, finish, onPreset, onClear }: Estimate
           </ul>
         </div>
       )}
-      <p className="text-xs text-muted">{t.soon}</p>
     </section>
   );
 }

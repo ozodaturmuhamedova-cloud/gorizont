@@ -18,6 +18,8 @@ export interface ApartmentMiniPlanProps {
   apartment: Apartment;
   /** Мебель поверх плана (страница без WebGL, /dev/random). */
   placed?: readonly PlacedFurniture[];
+  /** Посетитель в прогулке: точка и направление взгляда. */
+  marker?: { position: Vec2; heading: number } | null;
   className?: string;
 }
 
@@ -25,6 +27,7 @@ export interface ApartmentMiniPlanProps {
 export function ApartmentMiniPlan({
   apartment: a,
   placed,
+  marker,
   className = 'h-auto max-h-44 w-full',
 }: ApartmentMiniPlanProps) {
   const { min, max } = bbox(a.outline);
@@ -85,6 +88,27 @@ export function ApartmentMiniPlan({
           />
         );
       })}
+      {marker && (
+        <g data-testid="walk-marker">
+          <line
+            x1={marker.position[0]}
+            y1={marker.position[1]}
+            x2={marker.position[0] + Math.cos(marker.heading) * 0.9}
+            y2={marker.position[1] + Math.sin(marker.heading) * 0.9}
+            stroke={PLAN_COLORS.window}
+            strokeWidth={0.14}
+            strokeLinecap="round"
+          />
+          <circle
+            cx={marker.position[0]}
+            cy={marker.position[1]}
+            r={0.28}
+            fill="#2c6a57"
+            stroke="#fff"
+            strokeWidth={0.07}
+          />
+        </g>
+      )}
     </svg>
   );
 }

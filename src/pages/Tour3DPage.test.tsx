@@ -131,4 +131,36 @@ describe('страница 3D-тура', () => {
     fireEvent.click(screen.getByRole('button', { name: strings.furnish.remove }));
     expect(useStore.getState().placed[ID]).toEqual([]);
   });
+
+  it('прогулка: окно роста, проверка диапазона, HUD и выход', async () => {
+    renderTour();
+    fireEvent.click(await screen.findByRole('button', { name: strings.walk.start }));
+    const dialog = screen.getByRole('dialog', { name: strings.walk.dialogTitle });
+    const input = screen.getByRole('spinbutton', { name: strings.walk.heightLabel });
+    expect(dialog).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: '50' } });
+    expect(screen.getByRole('button', { name: strings.walk.begin })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent(strings.walk.outOfRange);
+    fireEvent.change(input, { target: { value: '185' } });
+    fireEvent.click(screen.getByRole('button', { name: strings.walk.begin }));
+    expect(useStore.getState().cameraMode).toBe('walk');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByTestId('walk-height')).toHaveTextContent(strings.walk.height(185));
+    fireEvent.click(screen.getByRole('button', { name: strings.walk.exit }));
+    expect(useStore.getState().cameraMode).toBe('orbit');
+  });
+
+  it('рост уже указан — прогулка без окна, «Изменить рост» открывает его снова', async () => {
+    act(() => useStore.getState().setHeight(160));
+    renderTour();
+    fireEvent.click(await screen.findByRole('button', { name: strings.walk.start }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByTestId('walk-height')).toHaveTextContent(strings.walk.height(160));
+    fireEvent.click(screen.getByRole('button', { name: strings.walk.changeHeight }));
+    const input = screen.getByRole('spinbutton', { name: strings.walk.heightLabel });
+    fireEvent.change(input, { target: { value: '200' } });
+    fireEvent.click(screen.getByRole('button', { name: strings.walk.save }));
+    expect(screen.getByTestId('walk-height')).toHaveTextContent(strings.walk.height(200));
+    expect(useStore.getState().cameraMode).toBe('walk');
+  });
 });

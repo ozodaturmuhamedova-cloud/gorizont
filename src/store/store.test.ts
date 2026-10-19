@@ -149,3 +149,37 @@ describe('стор: мебель', () => {
     expect(checkPose(apt, 'nope', at(0, 0))).toBeNull();
   });
 });
+
+describe('стор: рост и прогулка', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useStore.setState(initialStoreState, true);
+  });
+
+  it('без роста прогулка не включается — открывается окно роста', () => {
+    useStore.getState().setCameraMode('walk');
+    expect(useStore.getState().cameraMode).toBe('orbit');
+    expect(useStore.getState().heightDialogOpen).toBe(true);
+  });
+
+  it('рост вне 100–220 см игнорируется, допустимый — сохраняется в localStorage', () => {
+    const s = useStore.getState();
+    s.setHeight(50);
+    expect(useStore.getState().heightCm).toBeNull();
+    s.setHeight(185);
+    expect(useStore.getState().heightCm).toBe(185);
+    expect(persistedPart(useStore.getState()).heightCm).toBe(185);
+  });
+
+  it('вход в прогулку снимает «призрак» и выбор, выход сбрасывает позицию', () => {
+    const s = useStore.getState();
+    s.setHeight(170);
+    s.setPlacing('chair');
+    s.setCameraMode('walk');
+    expect(useStore.getState().cameraMode).toBe('walk');
+    expect(useStore.getState().placingItemId).toBeNull();
+    s.setWalkPose({ position: [1, 1], heading: 0 });
+    s.setCameraMode('orbit');
+    expect(useStore.getState().walkPose).toBeNull();
+  });
+});

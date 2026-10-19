@@ -73,7 +73,7 @@ src/
     pricing.ts         # смета: квартира + мебель + отделка
     filters.ts         # фильтрация квартир
     rng.ts             # детерминированный ГПСЧ по seed (mulberry32) — общий для прода и тестов
-    walk.ts            # рост → высота глаз, радиус, скорость; коллизии и скольжение
+    walk.ts            # рост → высота глаз, радиус, скорость; препятствия, скольжение, старт, поиск пути
     layout/            # расстановка мебели (§7.2)
       zones.ts         # свободная часть комнаты: минус двери, отметки окон
       candidates.ts    # генерация позиций: вдоль стен, в углах, сеткой
@@ -87,9 +87,10 @@ src/
                        # furnishActions.ts — поворот/удаление выбранного предмета
   scene2d/             # FloorPlanStage, ApartmentShape, Legend, MiniMap
   scene3d/             # ApartmentScene, Walls, Floors, Openings, FurnitureLayer (InstancedMesh),
-                       # Furnishing (призрак, перетаскивание, клавиши), CameraRig, Lighting
+                       # Furnishing (призрак, перетаскивание, клавиши), CameraRig (Orbit/Walk),
+                       # WalkRig (прогулка), Ceiling, Lighting; walkInput.ts — джойстик/свайп
   ui/                  # ApartmentCard, Filters, Catalog, Estimate, FurnishToolbar, LeadForm,
-                       # HeightDialog, WalkHUD, MobileJoystick
+                       # HeightDialog, WalkHUD, MobileJoystick (+ LookArea), device.ts
   pages/               # PlanPage, Tour3DPage, NotFound, DevRandomPage (только dev)
   testing/
     random/
@@ -222,6 +223,10 @@ walkSpeed(heightCm)     = clamp(heightCm / 100 * 0.8, 1.0, 1.6)       // м/с
 - При выходе из Walk камера Orbit плавно возвращается к виду 3/4.
 - Включён потолок, `frameloop="always"`. Расстановка мебели в Walk отключена, в Orbit — снова доступна.
 
+**Реализация.** Препятствия — `walkObstacles(apt, placed, catalog)`: куски стен без проёмов межкомнатных дверей (окна и входная дверь — сплошные, из квартиры не выйти) и следы мебели. Шаг — `moveCircle`: подшаги не длиннее половины радиуса, после каждого выталкивание из препятствий, отсюда скольжение. Ввод с телефона идёт через `scene3d/walkInput.ts` (обычный объект, не стор). Pointer lock включается кликом по оверлею `#walk-resume`; клавиши работают и без захвата мыши. Для e2e в dev-сборке есть `window.__gorizontWalk.pose()` — позиция на плане, направление взгляда и высота камеры.
+
+**Связь с мебелью.** autoLayout оставляет проход между дверями каждой комнаты для роста 195 см (`blockedDoors`), поэтому прогулка с «Готовым комплектом» доходит до каждой комнаты (инвариант `walkViolations` в `testing/random/invariants.ts`).
+
 ### 7.2. Расстановка мебели
 
 Вся логика находится в `src/domain/layout/` и состоит из чистых функций без React и three. Она работает в 2D (плоскость пола) с повёрнутыми прямоугольниками (OBB). Одни и те же функции используются в трёх местах: кнопка «Готовый комплект», ручная расстановка и генератор `furnitureGen.ts` для тестов.
@@ -310,9 +315,9 @@ walkSpeed(heightCm)     = clamp(heightCm / 100 * 0.8, 1.0, 1.6)       // м/с
 
 - `selectionSlice`: `floor`, `apartmentId`
 - `filtersSlice`: `rooms[]`, `areaRange`, `priceRange`, `onlyFree`
-- `furnishSlice`: `placed: Record<apartmentId, PlacedFurniture[]>`, `skipped` (что не поместилось в «Готовый комплект»), `finishId`. В `localStorage` (middleware `persist`, ключ `gorizont`) сохраняются `placed` и `finishId`; квартиры `/dev/random` (`rnd-…`) не сохраняются.
-- `uiSlice`: `cameraMode`, `hoveredId`, `wallsCut`, `placingItemId` (предмет из каталога у курсора), `selectedFurniture`, `catalogRoom`
-- `visitorSlice`: `heightCm: number | null` (persist), `heightDialogOpen`. Позиция и направление камеры в Walk в стор **не** пишутся каждый кадр — только в ref, а в стор (для мини-плана) не чаще 10 раз в секунду.
+- `furnishSlice`: `placed: Record<apartmentId, PlacedFurniture[]>`, `skipped` (что не поместилось в «Готовый комплект»), `finishId`. В `localStorage` (middleware `persist`, ключ `gorizont`) сохраняются `placed`, `finishId` и `heightCm`; квартиры `/dev/random` (`rnd-…`) не сохраняются.
+- `uiSlice`: `cameraMode` (`setCameraMode('walk')` без роста открывает окно роста), `pointerLocked`, `hoveredId`, `wallsCut`, `placingItemId` (предмет из каталога у курсора), `selectedFurniture`, `catalogRoom`
+- `visitorSlice`: `heightCm: number | null` (persist), `heightDialogOpen`, `walkPose` (для HUD). Позиция и направление камеры в Walk в стор **не** пишутся каждый кадр — только в ref, а в стор (для мини-плана) не чаще 10 раз в секунду.
 
 Компоненты сцен читают стор селекторами (`useStore(s => s.x)`), а не целиком. В `useFrame` используй `useStore.getState()`, а не подписки.
 

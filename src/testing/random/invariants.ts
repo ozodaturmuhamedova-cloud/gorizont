@@ -4,7 +4,16 @@
  */
 import { AREA_TOLERANCE, EPS, WALL_EXTERIOR } from '../../domain/constants';
 import {
+  collides,
+  collisionRadius,
+  reachableFrom,
+  roomContaining,
+  startPose,
+  walkObstacles,
+} from '../../domain/walk';
+import {
   bbox,
+  centerOf,
   footprintObb,
   obbCorners,
   obbsOverlap,
@@ -277,4 +286,48 @@ export function plausibilityViolations(apt: Apartment): string[] {
       ? [`«${r.id}» ${a.toFixed(1)} м² вне ${min}–${hi} м²`]
       : [];
   });
+}
+
+/** Рост, для которых проверяется прогулка (§10.1). */
+export const WALK_CHECK_HEIGHTS = [150, 195] as const;
+
+/**
+ * Прогулка (§7.1, §10.1): старт в прихожей, и из него для роста 150 и 195 см достижим центр
+ * каждой комнаты. С мебелью достаточно любой точки комнаты: центр может занимать стол.
+ */
+export function walkViolations(
+  apt: Apartment,
+  placed: readonly PlacedFurniture[] = [],
+  catalog?: Pick<FurnitureCatalog, 'byId'>,
+): string[] {
+  const v: string[] = [];
+  const obstacles = walkObstacles(apt, placed, catalog);
+  for (const cm of WALK_CHECK_HEIGHTS) {
+    const start = startPose(apt, cm, obstacles);
+    const r = collisionRadius(cm);
+    if (collides(start.position, r, obstacles)) v.push(`рост ${cm}: точка старта в препятствии`);
+    const startRoom = roomContaining(apt, start.position);
+    if (apt.roomsGeometry.some((x) => x.type === 'hall') && startRoom?.type !== 'hall') {
+      v.push(`рост ${cm}: старт не в прихожей`);
+    }
+    const reach = reachableFrom(apt, start.position, r, obstacles);
+    for (const room of apt.roomsGeometry) {
+      const ok =
+        placed.length === 0
+          ? reach(centerOf(room.polygon))
+          : gridPoints(room.polygon).some((p) => reach(p));
+      if (!ok) v.push(`рост ${cm}: не дойти до комнаты «${room.id}»`);
+    }
+  }
+  return v;
+}
+
+function gridPoints(poly: readonly Vec2[]): Vec2[] {
+  const { min, max } = bbox(poly);
+  const out: Vec2[] = [];
+  for (let x = min[0] + 0.05; x < max[0]; x += 0.1) {
+    for (let y = min[1] + 0.05; y < max[1]; y += 0.1)
+      if (pointInPolygon([x, y], poly)) out.push([x, y]);
+  }
+  return out;
 }
