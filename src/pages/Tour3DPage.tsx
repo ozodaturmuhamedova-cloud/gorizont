@@ -69,7 +69,7 @@ export default function Tour3DPage() {
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-w-0 flex-col gap-2">
           <div
-            className="relative h-[min(70vh,680px)] min-h-[320px] overflow-hidden rounded-2xl border border-line bg-[#dde2db]"
+            className="relative h-[min(70vh,680px)] min-h-[320px] overflow-hidden rounded-2xl border border-line bg-[#e3e7e0]"
             role="img"
             aria-label={s.sceneLabel(apt.number)}
           >

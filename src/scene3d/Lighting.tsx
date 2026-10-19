@@ -10,6 +10,8 @@ export function Lighting({ radius }: { radius: number }) {
   return (
     <>
       <hemisphereLight args={['#f4f7ff', '#8a8170', 1.0]} />
+      {/* рассеянный свет: вертикальные грани светлых стен не уходят в серый */}
+      <ambientLight intensity={0.45} />
       <directionalLight
         position={[r * 0.8, r * 1.6, r * 0.6]}
         intensity={2.0}

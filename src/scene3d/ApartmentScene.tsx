@@ -10,8 +10,10 @@ import { Openings } from './Openings';
 import { Walls } from './Walls';
 
 const FOV = 50;
-const BACKGROUND = '#dde2db';
-const GROUND = '#cfd5cd';
+/** Фон сцены совпадает с фоном контейнера на странице. */
+const BACKGROUND = '#e3e7e0';
+/** Земля невидима, на ней видны только тени. */
+const GROUND_SHADOW_OPACITY = 0.16;
 const GROUND_SIZE = 120;
 const GROUND_Y = -0.32;
 
@@ -82,7 +84,7 @@ export default function ApartmentScene({ apartment, finish, cut, resetKey }: Apa
       </group>
       <mesh rotation-x={-Math.PI / 2} position={[0, GROUND_Y, 0]} receiveShadow>
         <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
-        <meshStandardMaterial color={GROUND} roughness={1} />
+        <shadowMaterial transparent opacity={GROUND_SHADOW_OPACITY} />
       </mesh>
       <CameraRig frame={frame} fov={FOV} resetKey={resetKey} />
       <DevStats />
