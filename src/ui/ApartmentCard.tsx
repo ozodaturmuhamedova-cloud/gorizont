@@ -4,6 +4,7 @@ import { polygonArea } from '../domain/geometry';
 import { pricePerM2 } from '../domain/pricing';
 import type { Apartment } from '../domain/types';
 import { STATUS_COLORS } from '../scene2d/colors';
+import { ApartmentMiniPlan } from './ApartmentMiniPlan';
 import { strings } from './strings';
 
 export interface ApartmentCardProps {
@@ -11,7 +12,7 @@ export interface ApartmentCardProps {
   onClose: () => void;
 }
 
-/** Карточка выбранной квартиры. Мини-план появится в фазе 3. */
+/** Карточка выбранной квартиры с мини-планом. */
 export function ApartmentCard({ apartment: a, onClose }: ApartmentCardProps) {
   if (!a) {
     return (
@@ -62,6 +63,10 @@ export function ApartmentCard({ apartment: a, onClose }: ApartmentCardProps) {
         />
         {strings.status[a.status]}
       </span>
+
+      <div className="rounded-xl border border-line bg-white/60 p-2">
+        <ApartmentMiniPlan apartment={a} />
+      </div>
 
       <div className="flex items-baseline justify-between gap-3">
         <span className="font-display text-2xl font-semibold tabular-nums">

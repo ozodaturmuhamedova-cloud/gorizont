@@ -4,6 +4,7 @@
  */
 import { create, type StateCreator } from 'zustand';
 import { building, findApartment } from '../data';
+import { DEFAULT_FILTERS, type ApartmentFilters } from '../domain/filters';
 
 export interface SelectionSlice {
   floor: number;
@@ -13,12 +14,19 @@ export interface SelectionSlice {
   selectApartment: (id: string | null) => void;
 }
 
+export interface FiltersSlice {
+  filters: ApartmentFilters;
+  /** Частичное обновление: setFilters({ onlyFree: true }). Выбор квартиры не сбрасывается. */
+  setFilters: (patch: Partial<ApartmentFilters>) => void;
+  resetFilters: () => void;
+}
+
 export interface UiSlice {
   hoveredId: string | null;
   setHovered: (id: string | null) => void;
 }
 
-export type StoreState = SelectionSlice & UiSlice;
+export type StoreState = SelectionSlice & FiltersSlice & UiSlice;
 
 const createSelectionSlice: StateCreator<StoreState, [], [], SelectionSlice> = (set) => ({
   floor: building.floors,
@@ -38,6 +46,12 @@ const createSelectionSlice: StateCreator<StoreState, [], [], SelectionSlice> = (
     }),
 });
 
+const createFiltersSlice: StateCreator<StoreState, [], [], FiltersSlice> = (set) => ({
+  filters: DEFAULT_FILTERS,
+  setFilters: (patch) => set((s) => ({ filters: { ...s.filters, ...patch } })),
+  resetFilters: () => set({ filters: DEFAULT_FILTERS }),
+});
+
 const createUiSlice: StateCreator<StoreState, [], [], UiSlice> = (set) => ({
   hoveredId: null,
   setHovered: (id) => set({ hoveredId: id }),
@@ -45,6 +59,7 @@ const createUiSlice: StateCreator<StoreState, [], [], UiSlice> = (set) => ({
 
 export const useStore = create<StoreState>()((...a) => ({
   ...createSelectionSlice(...a),
+  ...createFiltersSlice(...a),
   ...createUiSlice(...a),
 }));
 

@@ -66,6 +66,42 @@ test.describe('поэтажный план', () => {
   });
 });
 
+test.describe('фильтры', () => {
+  test('отфильтровал → выбрал → открыл карточку; ссылка восстанавливает состояние', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: '3-комнатные' }).click();
+    await page.getByLabel('Только свободные').check();
+    await expect(page).toHaveURL(/rooms=3/);
+    await expect(page).toHaveURL(/free=1/);
+
+    const list = page.getByRole('region', { name: 'Список подходящих квартир' });
+    const first = list.getByRole('button').first();
+    const label = (await first.textContent()) ?? '';
+    const number = /Кв\. (\d+)/.exec(label)![1]!;
+    await first.click();
+    const card = page.getByRole('complementary', { name: `Кв. ${number}` });
+    await expect(card).toContainText('3-комн.');
+    await expect(card.getByRole('img', { name: `Планировка квартиры ${number}` })).toBeVisible();
+    await expect(page).toHaveURL(/apt=s1-f\d-a6/);
+
+    await page.reload();
+    await expect(page.getByRole('button', { name: '3-комнатные' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(page.getByRole('complementary', { name: `Кв. ${number}` })).toBeVisible();
+  });
+
+  test('квартиры, не прошедшие фильтр, на плане остаются и кликаются', async ({ page }) => {
+    await page.goto('/?rooms=0');
+    const p = await apartmentPoint(page, 's1-f9-a3'); // 2-комн., не проходит фильтр
+    await page.mouse.click(p.x, p.y);
+    await expect(page.getByRole('complementary', { name: 'Кв. 51' })).toBeVisible();
+  });
+});
+
 test('неизвестный адрес и несуществующая квартира показывают 404', async ({ page }) => {
   for (const url of ['/no-such-page', '/apartment/s9-f99-a1/3d']) {
     await page.goto(url);

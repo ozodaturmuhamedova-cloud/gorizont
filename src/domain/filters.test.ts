@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_FILTERS, filterApartments, filterBounds, matchesFilters } from './filters';
+import {
+  DEFAULT_FILTERS,
+  filterApartments,
+  filterBounds,
+  isDefaultFilters,
+  matchesFilters,
+  rangeFrom,
+} from './filters';
 import type { ApartmentFilters } from './filters';
 import type { ApartmentStatus, RoomCount } from './types';
 
@@ -77,5 +84,20 @@ describe('границы для слайдеров', () => {
 
   it('пустой список — null', () => {
     expect(filterBounds([])).toBeNull();
+  });
+});
+
+describe('вспомогательные функции фильтров', () => {
+  it('открытые границы через Infinity', () => {
+    expect(ids({ areaRange: rangeFrom(70, null) })).toEqual(['k2b', 'k3']);
+    expect(ids({ priceRange: rangeFrom(null, 6_400_000) })).toEqual(['studio', 'k1']);
+    expect(rangeFrom(null, null)).toBeNull();
+    expect(rangeFrom(80, 40)).toEqual([40, 80]);
+  });
+
+  it('isDefaultFilters', () => {
+    expect(isDefaultFilters(DEFAULT_FILTERS)).toBe(true);
+    expect(isDefaultFilters({ ...DEFAULT_FILTERS, onlyFree: true })).toBe(false);
+    expect(isDefaultFilters({ ...DEFAULT_FILTERS, rooms: [2] })).toBe(false);
   });
 });

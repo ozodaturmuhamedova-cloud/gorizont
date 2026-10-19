@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatArea, formatPrice } from './format';
+import { formatArea, formatMillions, formatPrice, pluralRu } from './format';
 import { estimate, finishCost, pricePerM2 } from './pricing';
 import type { Finish, FurnitureCatalog, FurnitureItem, PlacedFurniture } from './types';
 
@@ -81,5 +81,31 @@ describe('форматирование', () => {
   it('площадь с одним знаком после запятой', () => {
     expect(formatArea(64.4)).toBe('64,4 м²');
     expect(formatArea(35)).toBe('35,0 м²');
+  });
+});
+
+describe('компактные цены и склонение', () => {
+  const plain = (s: string) => s.replace(/\s/g, ' ');
+
+  it('миллионы с двумя знаками', () => {
+    expect(plain(formatMillions(10_440_000))).toBe('10,44 млн ₽');
+    expect(plain(formatMillions(7_000_000))).toBe('7 млн ₽');
+  });
+
+  it('1 квартира, 2 квартиры, 5 квартир, 11 квартир, 21 квартира', () => {
+    const q = (n: number) => pluralRu(n, 'квартира', 'квартиры', 'квартир');
+    expect([1, 2, 4, 5, 11, 12, 14, 21, 22, 25, 111].map(q)).toEqual([
+      'квартира',
+      'квартиры',
+      'квартиры',
+      'квартир',
+      'квартир',
+      'квартир',
+      'квартир',
+      'квартира',
+      'квартиры',
+      'квартир',
+      'квартир',
+    ]);
   });
 });

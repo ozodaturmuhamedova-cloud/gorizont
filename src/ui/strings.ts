@@ -1,4 +1,5 @@
 /** Все строки интерфейса (CLAUDE.md §9). */
+import { pluralRu } from '../domain/format';
 import type { ApartmentStatus, RoomCount, RoomType } from '../domain/types';
 
 const roomTypes: Record<RoomType, string> = {
@@ -50,9 +51,29 @@ export const strings = {
   legend: {
     label: 'Статусы квартир на этаже',
   },
+  filters: {
+    label: 'Фильтры квартир',
+    rooms: 'Комнаты',
+    roomsChip: (n: RoomCount) => (n === 0 ? 'Студия' : `${n}`),
+    roomsAria: (n: RoomCount) => (n === 0 ? 'Студии' : `${n}-комнатные`),
+    area: 'Площадь, м²',
+    price: 'Цена, млн ₽',
+    from: 'от',
+    to: 'до',
+    onlyFree: 'Только свободные',
+    reset: 'Сбросить',
+    found: (n: number) => `Найдено ${n} ${pluralRu(n, 'квартира', 'квартиры', 'квартир')}`,
+    none: 'Ничего не нашлось — ослабьте фильтры.',
+  },
+  list: {
+    title: 'Подходящие квартиры',
+    label: 'Список подходящих квартир',
+    floorShort: (n: number) => `${n} эт.`,
+  },
   card: {
     empty: 'Выберите свободную квартиру на плане или в шахматке слева.',
     rooms: 'Помещения',
+    miniPlan: (n: number) => `Планировка квартиры ${n}`,
     soldNote: 'Квартира продана',
     reservedNote:
       'Квартира забронирована — можно посмотреть в 3D и оставить заявку в лист ожидания.',

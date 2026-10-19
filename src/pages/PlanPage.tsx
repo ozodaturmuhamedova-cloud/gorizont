@@ -1,21 +1,46 @@
 import { useMemo } from 'react';
+import { useUrlSync } from '../app/useUrlSync';
 import { apartmentsOnFloor, building, findApartment } from '../data';
+import { filterApartments, isDefaultFilters } from '../domain/filters';
+import type { RoomCount } from '../domain/types';
 import { FloorPlanStage } from '../scene2d/FloorPlanStage';
 import { Legend } from '../scene2d/Legend';
 import { useStore } from '../store';
 import { ApartmentCard } from '../ui/ApartmentCard';
+import { ApartmentList } from '../ui/ApartmentList';
+import { Filters } from '../ui/Filters';
 import { FloorSwitcher } from '../ui/FloorSwitcher';
 import { strings } from '../ui/strings';
 
+/** Комнатности, которые есть в доме, — только по ним показываем кнопки фильтра. */
+const ROOM_OPTIONS = [...new Set(building.apartments.map((a) => a.rooms))].sort(
+  (a, b) => a - b,
+) as RoomCount[];
+
 export function PlanPage() {
+  useUrlSync();
   const floor = useStore((s) => s.floor);
   const apartmentId = useStore((s) => s.apartmentId);
   const hoveredId = useStore((s) => s.hoveredId);
+  const filters = useStore((s) => s.filters);
   const setFloor = useStore((s) => s.setFloor);
   const selectApartment = useStore((s) => s.selectApartment);
   const setHovered = useStore((s) => s.setHovered);
+  const setFilters = useStore((s) => s.setFilters);
+  const resetFilters = useStore((s) => s.resetFilters);
 
   const onFloor = useMemo(() => apartmentsOnFloor(floor), [floor]);
+  const matching = useMemo(
+    () =>
+      filterApartments(building.apartments, filters).sort(
+        (a, b) => b.floor - a.floor || a.number - b.number,
+      ),
+    [filters],
+  );
+  const matchingIds = useMemo(
+    () => (isDefaultFilters(filters) ? undefined : new Set(matching.map((a) => a.id))),
+    [filters, matching],
+  );
   const selected = apartmentId ? (findApartment(apartmentId) ?? null) : null;
 
   return (
@@ -33,12 +58,21 @@ export function PlanPage() {
         <Legend apartments={onFloor} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_300px]">
+      <Filters
+        filters={filters}
+        roomOptions={ROOM_OPTIONS}
+        found={matching.length}
+        onChange={setFilters}
+        onReset={resetFilters}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_320px]">
         <FloorSwitcher
           floors={building.floors}
           apartments={building.apartments}
           currentFloor={floor}
           selectedId={apartmentId}
+          matchingIds={matchingIds}
           onFloor={setFloor}
           onSelect={selectApartment}
           onHover={setHovered}
@@ -51,13 +85,23 @@ export function PlanPage() {
               apartments={onFloor}
               selectedId={apartmentId}
               hoveredId={hoveredId}
+              matchingIds={matchingIds}
               onHover={setHovered}
               onSelect={selectApartment}
             />
           </div>
           <p className="text-xs text-muted">{strings.plan.hint}</p>
         </div>
-        <ApartmentCard apartment={selected} onClose={() => selectApartment(null)} />
+        <div className="flex min-w-0 flex-col gap-4">
+          <ApartmentCard apartment={selected} onClose={() => selectApartment(null)} />
+          <ApartmentList
+            apartments={matching}
+            selectedId={apartmentId}
+            hoveredId={hoveredId}
+            onSelect={selectApartment}
+            onHover={setHovered}
+          />
+        </div>
       </div>
     </section>
   );

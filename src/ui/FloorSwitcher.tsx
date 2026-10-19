@@ -1,5 +1,5 @@
-import { STATUS_COLORS } from '../scene2d/colors';
 import type { Apartment } from '../domain/types';
+import { STATUS_COLORS } from '../scene2d/colors';
 import { strings } from './strings';
 
 export interface FloorSwitcherProps {
@@ -7,6 +7,8 @@ export interface FloorSwitcherProps {
   apartments: Apartment[];
   currentFloor: number;
   selectedId: string | null;
+  /** id квартир, прошедших фильтр; undefined — фильтр не задан. */
+  matchingIds?: ReadonlySet<string>;
   onFloor: (floor: number) => void;
   onSelect: (id: string) => void;
   onHover: (id: string | null) => void;
@@ -47,6 +49,7 @@ export function FloorSwitcher(p: FloorSwitcherProps) {
                 {onFloor.map((a) => {
                   const sold = a.status === 'sold';
                   const selected = a.id === p.selectedId;
+                  const dimmed = p.matchingIds ? !p.matchingIds.has(a.id) : false;
                   const label = strings.floors.cell(a.number, strings.status[a.status]);
                   return (
                     <button
@@ -63,7 +66,9 @@ export function FloorSwitcher(p: FloorSwitcherProps) {
                       onBlur={() => p.onHover(null)}
                       className={`h-5 w-5 rounded ${
                         selected ? 'ring-2 ring-brand ring-offset-1' : ''
-                      } ${sold ? 'cursor-not-allowed opacity-50' : 'hover:brightness-95'}`}
+                      } ${sold ? 'cursor-not-allowed' : 'hover:brightness-95'} ${
+                        dimmed ? 'opacity-25' : sold ? 'opacity-50' : ''
+                      }`}
                       style={{ background: STATUS_COLORS[a.status] }}
                     />
                   );

@@ -5,7 +5,7 @@ export type Range = [min: number, max: number];
 export interface ApartmentFilters {
   /** Пустой список — любая комнатность. */
   rooms: RoomCount[];
-  /** null — без ограничения. Границы включительно. */
+  /** null — без ограничения. Границы включительно; открытая граница — ±Infinity. */
   areaRange: Range | null;
   priceRange: Range | null;
   onlyFree: boolean;
@@ -46,4 +46,17 @@ export function filterBounds(list: readonly Filterable[]): { area: Range; price:
     area: [Math.min(...areas), Math.max(...areas)],
     price: [Math.min(...prices), Math.max(...prices)],
   };
+}
+
+/** Фильтры не заданы — проходят все квартиры. */
+export function isDefaultFilters(f: ApartmentFilters): boolean {
+  return f.rooms.length === 0 && f.areaRange === null && f.priceRange === null && !f.onlyFree;
+}
+
+/** Диапазон из двух необязательных границ; обе пустые — null. Границы упорядочиваются. */
+export function rangeFrom(min: number | null, max: number | null): Range | null {
+  if (min === null && max === null) return null;
+  const lo = min ?? -Infinity;
+  const hi = max ?? Infinity;
+  return lo <= hi ? [lo, hi] : [hi, lo];
 }

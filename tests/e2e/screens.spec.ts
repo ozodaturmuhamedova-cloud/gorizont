@@ -37,3 +37,13 @@ test('скриншот: приближенная выбранная кварти
     .getByTestId('floor-plan')
     .screenshot({ path: `screens/zoomed-${info.project.name}.png` });
 });
+
+test('скриншот: фильтр «2-комн., до 11 млн» и список', async ({ page }, info) => {
+  await page.goto('/?rooms=2&price=-11000000&apt=s1-f9-a3');
+  await page.waitForFunction(() => window.__gorizontPlan?.apartmentPoint('s1-f9-a3') != null);
+  await page.waitForTimeout(300);
+  await page.screenshot({
+    path: `screens/filters-${info.project.name}.png`,
+    fullPage: info.project.name === 'mobile',
+  });
+});

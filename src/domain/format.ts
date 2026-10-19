@@ -17,3 +17,19 @@ export function formatPrice(value: number): string {
 export function formatArea(value: number): string {
   return `${area1.format(value)} м²`;
 }
+
+const mln = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
+
+/** «10,44 млн ₽» — для компактных списков. */
+export function formatMillions(value: number): string {
+  return `${mln.format(value / 1_000_000)} млн ₽`;
+}
+
+/** Русское склонение по числу: 1 квартира, 2 квартиры, 5 квартир. */
+export function pluralRu(n: number, one: string, few: string, many: string): string {
+  const m10 = Math.abs(n) % 10;
+  const m100 = Math.abs(n) % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
+  return many;
+}
