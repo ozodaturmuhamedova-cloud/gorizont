@@ -80,3 +80,39 @@ test('скриншот: 3D со срезом стен и отделкой «Ло
     .getByRole('img', { name: '3D-модель квартиры 51' })
     .screenshot({ path: `screens/3d-cut-${info.project.name}.png` });
 });
+
+test('скриншот: 3D с готовым комплектом мебели', async ({ page }, info) => {
+  await page.goto('/apartment/s1-f9-a3/3d');
+  await page.waitForFunction(() => (window.__gorizont3d?.frames() ?? 0) >= 1, null, {
+    timeout: 20_000,
+  });
+  await page.getByRole('button', { name: 'Готовый комплект' }).click();
+  await page.waitForTimeout(1200);
+  await page
+    .getByRole('img', { name: '3D-модель квартиры 51' })
+    .screenshot({ path: `screens/3d-furnished-${info.project.name}.png` });
+  await page.screenshot({
+    path: `screens/3d-furnished-page-${info.project.name}.png`,
+    fullPage: true,
+  });
+});
+
+test('скриншот: призрак предмета и подсказка', async ({ page, isMobile }, info) => {
+  test.skip(isMobile, 'на телефоне нет наведения');
+  await page.goto('/apartment/s1-f9-a3/3d');
+  await page.waitForFunction(() => window.__gorizontFurnish != null, null, { timeout: 20_000 });
+  await page.getByRole('button', { name: 'Готовый комплект' }).click();
+  await page.getByRole('tab', { name: 'Спальня' }).click();
+  await page
+    .getByRole('button', { name: /^Поставить «Шкаф/ })
+    .first()
+    .click();
+  await page.locator('canvas').scrollIntoViewIfNeeded();
+  const p = await page.evaluate(() => window.__gorizontFurnish!.roomPoint('bedroom'));
+  await page.mouse.move(p!.x - 4, p!.y);
+  await page.mouse.move(p!.x, p!.y);
+  await page.waitForTimeout(600);
+  await page
+    .getByRole('img', { name: '3D-модель квартиры 51' })
+    .screenshot({ path: `screens/3d-ghost-${info.project.name}.png` });
+});

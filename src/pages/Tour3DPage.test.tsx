@@ -1,10 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { routes } from '../app/routes';
-import { findApartment, findFinish } from '../data';
+import { findApartment, findFinish, furniture } from '../data';
 import { formatPrice } from '../domain/format';
-import { finishCost } from '../domain/pricing';
+import { zonesFor } from '../domain/layout';
+import { estimate, finishCost } from '../domain/pricing';
 import type { ApartmentSceneProps } from '../scene3d/ApartmentScene';
 import { hasWebGL } from '../scene3d/webgl';
 import { initialStoreState, useStore } from '../store';
@@ -37,6 +38,7 @@ function renderTour() {
 
 describe('страница 3D-тура', () => {
   beforeEach(() => {
+    localStorage.clear();
     useStore.setState(initialStoreState, true);
     vi.mocked(hasWebGL).mockReturnValue(true);
   });
@@ -77,5 +79,56 @@ describe('страница 3D-тура', () => {
       screen.getByRole('img', { name: strings.card.miniPlan(apt.number) }),
     ).toBeInTheDocument();
     expect(screen.queryByTestId('scene')).toBeNull();
+  });
+
+  it('«Готовый комплект» расставляет мебель и добавляет её в смету, «Очистить» убирает', async () => {
+    renderTour();
+    expect(screen.getByText(strings.furnish.empty)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: strings.furnish.preset }));
+    const placed = useStore.getState().placed[ID] ?? [];
+    expect(placed.length).toBeGreaterThan(10);
+    const e = estimate(apt, placed, furniture, findFinish('scandi')!);
+    expect(e.furnitureTotal).toBeGreaterThan(0);
+    expect(flat(screen.getByTestId('furniture-cost').textContent)).toBe(
+      flat(formatPrice(e.furnitureTotal)),
+    );
+    expect(flat(screen.getByTestId('total').textContent)).toBe(flat(formatPrice(e.total)));
+    // второй вариант — другая расстановка того же набора
+    fireEvent.click(screen.getByRole('button', { name: strings.furnish.presetAgain }));
+    expect(useStore.getState().placed[ID]).not.toEqual(placed);
+    fireEvent.click(screen.getByRole('button', { name: strings.furnish.clear }));
+    expect(useStore.getState().placed[ID]).toEqual([]);
+    expect(flat(screen.getByTestId('total').textContent)).toBe(flat(formatPrice(apt.price)));
+  });
+
+  it('каталог: вкладки по комнатам, выбор предмета показывает подсказку и отмену', async () => {
+    renderTour();
+    fireEvent.click(await screen.findByRole('tab', { name: strings.roomTypes.bath }));
+    const toilet = furniture.byId.get('toilet')!;
+    fireEvent.click(screen.getByRole('button', { name: strings.furnish.addLabel(toilet.name) }));
+    expect(useStore.getState().placingItemId).toBe('toilet');
+    expect(screen.getByTestId('furnish-toolbar')).toHaveTextContent(
+      strings.furnish.placing(toilet.name),
+    );
+    fireEvent.click(screen.getByRole('button', { name: strings.furnish.cancel }));
+    expect(useStore.getState().placingItemId).toBeNull();
+    expect(screen.queryByTestId('furnish-toolbar')).toBeNull();
+  });
+
+  it('выбранный предмет: поворот и удаление кнопками', async () => {
+    renderTour();
+    const bedroom = apt.roomsGeometry.find((r) => r.type === 'bedroom')!;
+    const z = zonesFor(apt, bedroom);
+    const c: [number, number] = [
+      (z.inner.min[0] + z.inner.max[0]) / 2,
+      (z.inner.min[1] + z.inner.max[1]) / 2,
+    ];
+    act(() =>
+      useStore.getState().addFurniture(ID, { itemId: 'dresser', position: c, rotation: 0 }),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: strings.furnish.rotateRight }));
+    expect(useStore.getState().placed[ID]![0]!.rotation).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: strings.furnish.remove }));
+    expect(useStore.getState().placed[ID]).toEqual([]);
   });
 });

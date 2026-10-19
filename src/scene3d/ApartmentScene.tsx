@@ -5,6 +5,8 @@ import { orbitHome, sceneFrame } from '../domain/scene3d';
 import type { Apartment, Finish } from '../domain/types';
 import { CameraRig } from './CameraRig';
 import { Floors } from './Floors';
+import { Furnishing } from './Furnishing';
+import { disposeFurnitureGeometries } from './furnitureGeometry';
 import { Lighting } from './Lighting';
 import { Openings } from './Openings';
 import { Walls } from './Walls';
@@ -24,6 +26,8 @@ export interface ApartmentSceneProps {
   cut: boolean;
   /** Смена значения возвращает камеру в вид «3/4». */
   resetKey: number;
+  /** Можно ли расставлять мебель (в режиме прогулки — нельзя). */
+  editable?: boolean;
 }
 
 declare global {
@@ -54,8 +58,16 @@ function DevStats() {
  * 3D-тур по квартире (§7). Геометрия — из тех же данных, что и 2D-план; квартира сдвигается
  * так, чтобы её центр (centerOf(outline)) оказался в начале координат.
  */
-export default function ApartmentScene({ apartment, finish, cut, resetKey }: ApartmentSceneProps) {
+export default function ApartmentScene({
+  apartment,
+  finish,
+  cut,
+  resetKey,
+  editable = true,
+}: ApartmentSceneProps) {
   const frame = useMemo(() => sceneFrame(apartment.outline), [apartment]);
+  // геометрия мебели кешируется на время визита, при уходе со страницы освобождается
+  useEffect(() => disposeFurnitureGeometries, []);
   // стартовая позиция до первого кадра; дальше вид ведёт CameraRig с учётом пропорций окна
   const home = useMemo(() => orbitHome(frame, FOV), [frame]);
 
@@ -81,6 +93,7 @@ export default function ApartmentScene({ apartment, finish, cut, resetKey }: Apa
         <Floors apartment={apartment} finish={finish} />
         <Walls apartment={apartment} color={finish.wall} cut={cut} />
         <Openings apartment={apartment} cut={cut} />
+        <Furnishing apartment={apartment} center={frame.center} editable={editable} />
       </group>
       <mesh rotation-x={-Math.PI / 2} position={[0, GROUND_Y, 0]} receiveShadow>
         <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />

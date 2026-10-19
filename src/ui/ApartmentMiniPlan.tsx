@@ -1,5 +1,6 @@
-import { bbox, openingSpan } from '../domain/geometry';
-import type { Apartment, RoomType, Vec2 } from '../domain/types';
+import { furniture } from '../data';
+import { bbox, footprintObb, obbCorners, openingSpan } from '../domain/geometry';
+import type { Apartment, PlacedFurniture, RoomType, Vec2 } from '../domain/types';
 import { PLAN_COLORS } from '../scene2d/colors';
 import { strings } from './strings';
 
@@ -13,8 +14,19 @@ const ROOM_FILL: Record<RoomType, string> = {
   balcony: '#e4e4e4',
 };
 
+export interface ApartmentMiniPlanProps {
+  apartment: Apartment;
+  /** Мебель поверх плана (страница без WebGL, /dev/random). */
+  placed?: readonly PlacedFurniture[];
+  className?: string;
+}
+
 /** Планировка квартиры для карточки: SVG из тех же данных, что и 2D/3D-сцены. */
-export function ApartmentMiniPlan({ apartment: a }: { apartment: Apartment }) {
+export function ApartmentMiniPlan({
+  apartment: a,
+  placed,
+  className = 'h-auto max-h-44 w-full',
+}: ApartmentMiniPlanProps) {
   const { min, max } = bbox(a.outline);
   const pad = 0.3;
   const w = max[0] - min[0] + 2 * pad;
@@ -25,11 +37,25 @@ export function ApartmentMiniPlan({ apartment: a }: { apartment: Apartment }) {
       role="img"
       aria-label={strings.card.miniPlan(a.number)}
       viewBox={`${min[0] - pad} ${min[1] - pad} ${w} ${h}`}
-      className="h-auto max-h-44 w-full"
+      className={className}
     >
       {a.roomsGeometry.map((r) => (
         <polygon key={r.id} points={pts(r.polygon)} fill={ROOM_FILL[r.type]} />
       ))}
+      {placed?.map((p, i) => {
+        const item = furniture.byId.get(p.itemId);
+        if (!item) return null;
+        return (
+          <polygon
+            key={`f-${i}`}
+            points={pts(obbCorners(footprintObb(item.size, p.position, p.rotation)))}
+            fill={item.color ?? '#b9a58d'}
+            stroke="#5b6761"
+            strokeWidth={0.02}
+            data-item={p.itemId}
+          />
+        );
+      })}
       {a.walls.map((wl, i) => (
         <line
           key={i}

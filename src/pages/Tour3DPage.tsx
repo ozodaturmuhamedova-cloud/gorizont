@@ -1,16 +1,22 @@
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { PageLoader } from '../app/PageLoader';
-import { defaultFinish, findApartment, findFinish, finishes } from '../data';
+import { defaultFinish, findApartment, findFinish, finishes, furniture } from '../data';
 import { formatArea, formatPrice } from '../domain/format';
-import { finishCost } from '../domain/pricing';
+import { furnishApartment } from '../domain/layout';
+import { createRng } from '../domain/rng';
+import type { PlacedFurniture } from '../domain/types';
 import { hasWebGL } from '../scene3d/webgl';
 import { useStore } from '../store';
 import { ApartmentMiniPlan } from '../ui/ApartmentMiniPlan';
+import { Catalog } from '../ui/Catalog';
+import { EstimatePanel } from '../ui/Estimate';
+import { FurnishToolbar } from '../ui/FurnishToolbar';
 import { strings } from '../ui/strings';
 import { NotFound } from './NotFound';
 
 const ApartmentScene = lazy(() => import('../scene3d/ApartmentScene'));
+const NO_FURNITURE: PlacedFurniture[] = [];
 
 export default function Tour3DPage() {
   const { id = '' } = useParams();
@@ -19,13 +25,30 @@ export default function Tour3DPage() {
   const setFinish = useStore((s) => s.setFinish);
   const cut = useStore((s) => s.wallsCut);
   const setCut = useStore((s) => s.setWallsCut);
+  const setFurniture = useStore((s) => s.setFurniture);
+  const placed = useStore((s) => (apt ? s.placed[apt.id] : undefined)) ?? NO_FURNITURE;
   const [resetKey, setResetKey] = useState(0);
+  const presetSeed = useRef(0);
   const webgl = useMemo(() => hasWebGL(), []);
+
+  // уходя со страницы, не оставляем «призрак» и выбор
+  useEffect(
+    () => () => {
+      useStore.getState().setPlacing(null);
+      useStore.getState().selectFurniture(null);
+    },
+    [],
+  );
 
   if (!apt) return <NotFound />;
   const s = strings.tour;
   const finish = findFinish(finishId) ?? defaultFinish;
-  const finishTotal = finishCost(finish, apt.area);
+  // «Готовый комплект»: каждое нажатие — новый вариант (seed 1, 2, 3…), воспроизводимый
+  const onPreset = () => {
+    presetSeed.current += 1;
+    const res = furnishApartment(apt, furniture, createRng(presetSeed.current));
+    setFurniture(apt.id, res.placed, res.skipped);
+  };
 
   return (
     <section className="flex flex-col gap-4">
@@ -74,14 +97,17 @@ export default function Tour3DPage() {
             aria-label={s.sceneLabel(apt.number)}
           >
             {webgl ? (
-              <Suspense fallback={<PageLoader />}>
-                <ApartmentScene apartment={apt} finish={finish} cut={cut} resetKey={resetKey} />
-              </Suspense>
+              <>
+                <Suspense fallback={<PageLoader />}>
+                  <ApartmentScene apartment={apt} finish={finish} cut={cut} resetKey={resetKey} />
+                </Suspense>
+                <FurnishToolbar apartment={apt} />
+              </>
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
                 <p className="max-w-md text-sm text-muted">{s.noWebGL}</p>
                 <div className="w-full max-w-md rounded-xl bg-paper p-3">
-                  <ApartmentMiniPlan apartment={apt} />
+                  <ApartmentMiniPlan apartment={apt} placed={placed} />
                 </div>
               </div>
             )}
@@ -127,28 +153,13 @@ export default function Tour3DPage() {
             ))}
           </fieldset>
 
-          <section
-            aria-label={s.summary}
-            className="flex flex-col gap-2 rounded-2xl border border-line bg-paper p-4 text-sm"
-          >
-            <div className="flex justify-between gap-3">
-              <span className="text-muted">{s.apartmentLine(apt.number)}</span>
-              <span className="tabular-nums">{formatPrice(apt.price)}</span>
-            </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-muted">{s.finishLine(finish.name)}</span>
-              <span className="tabular-nums" data-testid="finish-cost">
-                {finishTotal === 0 ? s.finishIncluded : formatPrice(finishTotal)}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-3 border-t border-line pt-2">
-              <span className="font-medium">{s.total}</span>
-              <span className="font-display text-lg font-semibold tabular-nums" data-testid="total">
-                {formatPrice(apt.price + finishTotal)}
-              </span>
-            </div>
-            <p className="text-xs text-muted">{s.soon}</p>
-          </section>
+          <EstimatePanel
+            apartment={apt}
+            finish={finish}
+            onPreset={onPreset}
+            onClear={() => setFurniture(apt.id, [])}
+          />
+          <Catalog disabled={!webgl} />
         </aside>
       </div>
     </section>

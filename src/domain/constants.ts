@@ -58,3 +58,9 @@ export const SECONDARY_PASSAGE = 0.6;
 export const SNAP_DISTANCE = 0.15;
 export const CORNER_SNAP_DISTANCE = 0.25;
 export const LAYOUT_JITTER = 3;
+
+// ---------- ручная расстановка мебели (§7) ----------
+/** Шаг поворота клавишами Q/E и кнопками, рад (15°). */
+export const ROTATE_STEP = Math.PI / 12;
+/** Смещение указателя, после которого нажатие считается перетаскиванием, а не кликом, px. */
+export const CLICK_TOLERANCE_PX = 6;
