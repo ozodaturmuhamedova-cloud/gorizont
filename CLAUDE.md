@@ -77,15 +77,18 @@ src/
     layout/            # расстановка мебели (§7.2)
       zones.ts         # свободная часть комнаты: минус двери, отметки окон
       candidates.ts    # генерация позиций: вдоль стен, в углах, сеткой
-      fits.ts          # проверка предмета и свободных зон
+      fits.ts          # след, зона подхода, правила §7.2: violations() и fits(уровень)
       score.ts         # оценка кандидата по правилам
-      autoLayout.ts    # жадная расстановка + откат + компактные замены
-      validate.ts      # статус ручной расстановки: ok / warning / error
-  store/               # Zustand: selectionSlice, filtersSlice, furnishSlice, uiSlice
+      walkable.ts      # проходимость: поиск пути по сетке 0.1 м от дверей комнаты
+      autoLayout.ts    # жадная расстановка + откат + компактные замены + «Готовый комплект»
+      validate.ts      # статус ручной расстановки: ok / warning / error; snapPose
+    furnitureModel.ts  # процедурные модели мебели: детали-боксы с оттенками
+  store/               # Zustand: selectionSlice, filtersSlice, furnishSlice, uiSlice;
+                       # furnishActions.ts — поворот/удаление выбранного предмета
   scene2d/             # FloorPlanStage, ApartmentShape, Legend, MiniMap
-  scene3d/             # ApartmentScene, Walls, Floor, Openings, FurnitureLayer,
-                       # CameraRig (orbit/walk), Lighting, PlacementGizmo
-  ui/                  # ApartmentCard, Filters, Catalog, Estimate, LeadForm,
+  scene3d/             # ApartmentScene, Walls, Floors, Openings, FurnitureLayer (InstancedMesh),
+                       # Furnishing (призрак, перетаскивание, клавиши), CameraRig, Lighting
+  ui/                  # ApartmentCard, Filters, Catalog, Estimate, FurnishToolbar, LeadForm,
                        # HeightDialog, WalkHUD, MobileJoystick
   pages/               # PlanPage, Tour3DPage, NotFound, DevRandomPage (только dev)
   testing/
@@ -292,17 +295,23 @@ walkSpeed(heightCm)     = clamp(heightCm / 100 * 0.8, 1.0, 1.6)       // м/с
 - **Притяжение к стене.** Если у `wall`-предмета спинка ближе `SNAP_DISTANCE = 0.15` м к глухой стене, предмет поворачивается и прижимается к ней.
 - **Притяжение в угол.** Для `corner` то же самое в радиусе 0.25 м от угла.
 - **Подсветка зон.** Footprint показывается цветом статуса, clearanceBox — полупрозрачным прямоугольником на полу. Подсказка из `reasons[0]` висит рядом с курсором.
-- **Производительность.** Валидация во время перетаскивания идёт не чаще одного раза за кадр. Нужна пространственная сетка или broad-phase по AABB, чтобы не сравнивать со всеми предметами квартиры.
+- **Производительность.** Валидация во время перетаскивания идёт не чаще одного раза за кадр и сравнивает предмет только с мебелью его комнаты (до ~15 предметов) — отдельный broad-phase не нужен. Если комнаты станут больше, добавь сетку или AABB-отсев.
 
-**Кнопка «Готовый комплект».** Вызывает `autoLayout` для каждой комнаты с базовым набором по типу комнаты (`presets` в `furniture.json`). Пропущенные предметы показываются в смете отдельным списком «Не поместилось» с причиной.
-- Производительность: одинаковые предметы рендерятся через `<Instances>`. Геометрию и материалы мемоизируй (`useMemo`). При уходе со страницы ресурсы освобождаются. Цель — ≥ 50 FPS на встроенной графике ноутбука и < 150 draw calls.
+**Кнопка «Готовый комплект».** Вызывает `autoLayout` для каждой комнаты с базовым набором по типу комнаты (`presets` в `furniture.json`; в студии гостиная получает и кухонный набор). Пропущенные предметы показываются в смете отдельным списком «Не поместилось» с причиной. Каждое нажатие — новый seed (1, 2, 3…), то есть другой, но воспроизводимый вариант.
+- Производительность: одинаковые предметы рендерятся одной `InstancedMesh` с геометрией из слитых деталей и цветами в вершинах (`scene3d/furnitureGeometry.ts`, кеш на предмет). При уходе со страницы геометрия освобождается. Цель — ≥ 50 FPS на встроенной графике ноутбука и < 150 draw calls.
+
+**Ступени строгости в autoLayout (`fits(shape, zones, others, level)`).** Сначала `'strict'` (вся таблица); если предмет никуда не встаёт — `'door'` (зона подхода может заходить в зону открывания двери); затем `'tight'` (зоны подхода соседей могут перекрываться). За каждое послабление — штраф в оценке. Жёсткие правила (стены, пересечения, двери, высокие предметы у окна) не ослабляются никогда, а доступ к каждому предмету всё равно проверяет `isWalkable`. Ручная расстановка показывает такие случаи жёлтым (warning).
+
+**Особые зоны подхода.** У стула зона сзади — место, чтобы его отодвинуть, поэтому она не может упираться в стену. У кровати боковые зоны могут упираться в стену (узкая спальня, подход с одной стороны). Стол группы `dining` ставится, только если вокруг встанут хотя бы два стула (`MIN_CHAIRS`).
+
+**Для e2e** в dev-сборке есть `window.__gorizontFurnish.roomPoint(typeOrId)` — экранная точка центра комнаты, по ней тест кликает по полу.
 
 ## 8. Состояние
 
 - `selectionSlice`: `floor`, `apartmentId`
 - `filtersSlice`: `rooms[]`, `areaRange`, `priceRange`, `onlyFree`
-- `furnishSlice`: `placed: Record<apartmentId, PlacedFurniture[]>`, `finishId`. Сохраняется в `localStorage` (middleware `persist`).
-- `uiSlice`: `cameraMode`, `catalogOpen`, `hoveredId`
+- `furnishSlice`: `placed: Record<apartmentId, PlacedFurniture[]>`, `skipped` (что не поместилось в «Готовый комплект»), `finishId`. В `localStorage` (middleware `persist`, ключ `gorizont`) сохраняются `placed` и `finishId`; квартиры `/dev/random` (`rnd-…`) не сохраняются.
+- `uiSlice`: `cameraMode`, `hoveredId`, `wallsCut`, `placingItemId` (предмет из каталога у курсора), `selectedFurniture`, `catalogRoom`
 - `visitorSlice`: `heightCm: number | null` (persist), `heightDialogOpen`. Позиция и направление камеры в Walk в стор **не** пишутся каждый кадр — только в ref, а в стор (для мини-плана) не чаще 10 раз в секунду.
 
 Компоненты сцен читают стор селекторами (`useStore(s => s.x)`), а не целиком. В `useFrame` используй `useStore.getState()`, а не подписки.
@@ -352,7 +361,7 @@ walkSpeed(heightCm)     = clamp(heightCm / 100 * 0.8, 1.0, 1.6)       // м/с
 **Генератор мебели `randomFurnished(seed, opts)`:**
 - Берёт квартиру (переданную или сгенерированную по тому же seed) и каталог `furniture.json`.
 - Для каждой комнаты выбирает случайный набор из подходящих по `allowedRooms`: спальня — кровать и, возможно, шкаф с тумбой; кухня — гарнитур, стол, стулья и т. д. Опция `density`: `'sparse' | 'normal' | 'dense'`.
-- Расстановка делается через `autoLayout` из `domain/layout/` (§7.2) с тем же `rng`. Собственного алгоритма размещения в генераторе нет. **До фазы 5** работает временный размещатель (случайная позиция и поворот кратно 90° с отбраковкой) — его нужно удалить, когда появится `autoLayout`.
+- Расстановка делается через `autoLayout` из `domain/layout/` (§7.2) с тем же `rng`. Собственного алгоритма размещения в генераторе нет.
 - Мебель использует свой поток случайных чисел (`seed ^ соль`), поэтому `randomFurnished(seed).apartment` совпадает с `randomApartment(seed)`.
 - Опция `allowInvalid: true` специально генерирует ошибки (пересечения со стенами и другой мебелью) для негативных тестов коллизий.
 

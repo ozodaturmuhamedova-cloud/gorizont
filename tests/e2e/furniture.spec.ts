@@ -69,6 +69,11 @@ test.describe('мебель в 3D', () => {
     const [placed] = await savedFurniture(page);
     expect(placed?.itemId).toBe('dresser');
 
+    // посреди комнаты поворот на 15° проходит (у стены он упёр бы предмет в стену)
+    await page.keyboard.press('e');
+    const [rotated] = await savedFurniture(page);
+    expect(rotated!.rotation).toBeCloseTo(Math.PI / 12);
+
     // перетаскивание: камера стоит, предмет едет
     await page.mouse.move(p!.x, p!.y);
     await page.mouse.down();
@@ -77,10 +82,6 @@ test.describe('мебель в 3D', () => {
     await page.mouse.up();
     const [moved] = await savedFurniture(page);
     expect(moved!.position).not.toEqual(placed!.position);
-
-    await page.keyboard.press('e');
-    const [rotated] = await savedFurniture(page);
-    expect(rotated!.rotation).not.toBe(moved!.rotation);
 
     await page.reload();
     await page.waitForFunction(() => (window.__gorizont3d?.frames() ?? 0) >= 1);

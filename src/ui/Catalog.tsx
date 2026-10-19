@@ -13,6 +13,7 @@ export function Catalog({ disabled = false }: { disabled?: boolean }) {
   const setRoom = useStore((s) => s.setCatalogRoom);
   const placing = useStore((s) => s.placingItemId);
   const setPlacing = useStore((s) => s.setPlacing);
+  const setCut = useStore((s) => s.setWallsCut);
   const items = furniture.items.filter((i) => !i.allowedRooms || i.allowedRooms.includes(room));
   const s = strings.furnish;
 
@@ -48,7 +49,11 @@ export function Catalog({ disabled = false }: { disabled?: boolean }) {
                 disabled={disabled}
                 aria-pressed={active}
                 aria-label={s.addLabel(item.name)}
-                onClick={() => setPlacing(active ? null : item.id)}
+                onClick={() => {
+                  // стены по пояс, чтобы видеть пол и мебель
+                  if (!active) setCut(true);
+                  setPlacing(active ? null : item.id);
+                }}
                 className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2 text-left text-sm disabled:opacity-50 ${
                   active ? 'border-brand bg-brand-soft' : 'border-transparent hover:border-line'
                 }`}
@@ -59,7 +64,7 @@ export function Catalog({ disabled = false }: { disabled?: boolean }) {
                   style={{ background: item.color ?? '#b9a58d' }}
                 />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-medium">{item.name}</span>
+                  <span className="font-medium leading-snug">{item.name}</span>
                   <span className="text-xs text-muted">{s.size(item.size[0], item.size[1])}</span>
                 </span>
                 <span className="shrink-0 tabular-nums text-muted">{formatPrice(item.price)}</span>

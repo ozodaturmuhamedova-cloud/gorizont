@@ -48,6 +48,8 @@ export default function Tour3DPage() {
     presetSeed.current += 1;
     const res = furnishApartment(apt, furniture, createRng(presetSeed.current));
     setFurniture(apt.id, res.placed, res.skipped);
+    // мебель за стенами не видно — срезаем стены по пояс
+    setCut(true);
   };
 
   return (
