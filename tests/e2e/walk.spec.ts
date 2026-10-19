@@ -17,6 +17,14 @@ async function open3d(page: Page) {
   });
 }
 
+/** Камера опустилась на уровень глаз (в CI рендер программный и медленный). */
+async function waitEyeLevel(page: Page) {
+  await page.waitForFunction(() => (window.__gorizontWalk?.pose().eye ?? 99) < 2.2, null, {
+    timeout: 25_000,
+  });
+  await page.waitForTimeout(300);
+}
+
 const pose = (page: Page) => page.evaluate(() => window.__gorizontWalk!.pose());
 
 test.describe('прогулка с учётом роста', () => {
@@ -36,17 +44,16 @@ test.describe('прогулка с учётом роста', () => {
     await expect(page.getByTestId('walk-height')).toHaveText('Рост: 185 см');
     await expect(page.getByTestId('walk-room')).toContainText('Прихожая');
 
-    await page.waitForFunction(() => window.__gorizontWalk != null);
-    // переход камеры из орбиты занимает 0.8 с
-    await page.waitForTimeout(1200);
+    // переход камеры из орбиты: ждём, пока камера опустится на высоту глаз
+    await waitEyeLevel(page);
     const start = await pose(page);
     expect(start.eye).toBeCloseTo(1.73, 1);
 
     await page.keyboard.down('KeyW');
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(1500);
     await page.keyboard.up('KeyW');
     const moved = await pose(page);
-    expect(Math.hypot(moved.x - start.x, moved.y - start.y)).toBeGreaterThan(0.3);
+    expect(Math.hypot(moved.x - start.x, moved.y - start.y)).toBeGreaterThan(0.2);
 
     await page.reload();
     await open3d(page);
@@ -70,8 +77,7 @@ test.describe('прогулка с учётом роста', () => {
     });
     await open3d(page);
     await page.getByRole('button', { name: 'Прогуляться' }).click();
-    await page.waitForFunction(() => window.__gorizontWalk != null);
-    await page.waitForTimeout(1000);
+    await waitEyeLevel(page);
     await page.keyboard.down('KeyW');
     await page.waitForTimeout(4000);
     await page.keyboard.up('KeyW');

@@ -126,13 +126,13 @@ test('скриншот: прогулка на высоте глаз', async ({ p
   await page.getByRole('button', { name: 'Прогуляться' }).click();
   await page.getByRole('spinbutton', { name: 'Ваш рост, см' }).fill('175');
   await page.getByRole('button', { name: 'Начать' }).click();
-  await page.waitForFunction(() => window.__gorizontWalk != null);
-  await page.waitForTimeout(1200);
+  await page.waitForFunction(() => (window.__gorizontWalk?.pose().eye ?? 99) < 2.2, null, {
+    timeout: 25_000,
+  });
   await page.keyboard.down('KeyW');
-  await page.waitForTimeout(900);
+  await page.waitForTimeout(1500);
   await page.keyboard.up('KeyW');
-  await page.waitForTimeout(300);
-  await page
-    .getByRole('img', { name: '3D-модель квартиры 51' })
-    .screenshot({ path: `screens/walk-${info.project.name}.png` });
+  await page.waitForTimeout(500);
+  // в прогулке сцена перерисовывается каждый кадр — снимаем страницу, а не «стабильный» элемент
+  await page.screenshot({ path: `screens/walk-${info.project.name}.png` });
 });

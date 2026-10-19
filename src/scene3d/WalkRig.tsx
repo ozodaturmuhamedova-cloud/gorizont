@@ -28,6 +28,8 @@ const EMPTY: PlacedFurniture[] = [];
 const SWIPE_SENSITIVITY = 0.005;
 /** Как часто позиция уходит в стор (для HUD и мини-плана), мс. */
 const POSE_SYNC_MS = 100;
+/** Самый длинный учитываемый кадр, с: после вкладки в фоне не «телепортируемся». */
+const MAX_DELTA = 0.25;
 /** Скорость подстройки высоты камеры при смене роста, 1/с. */
 const HEIGHT_LERP = 4;
 
@@ -157,7 +159,7 @@ export function WalkRig({ apartment, center, heightCm, touch }: WalkRigProps) {
     const p = pos.current;
     if (!p) return;
     // после вкладки в фоне delta бывает огромной — не «телепортируемся»
-    const delta = Math.min(rawDelta, 0.1);
+    const delta = Math.min(rawDelta, MAX_DELTA);
     const targetEye = cameraHeight(heightCm, ceiling);
     eye.current += (targetEye - eye.current) * Math.min(1, delta * HEIGHT_LERP);
 
