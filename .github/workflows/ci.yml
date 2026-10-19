@@ -54,6 +54,9 @@ jobs:
     runs-on: ubuntu-24.04
     needs: check
     timeout-minutes: 15
+    permissions:
+      # нужно только шагу Publish screenshots
+      contents: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -65,6 +68,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: E2E
         run: npm run e2e
+      # Скриншоты из tests/e2e/screens.spec.ts — в отдельную ветку, чтобы смотреть без артефактов
+      - name: Publish screenshots
+        if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          if ls screens/*.png >/dev/null 2>&1; then
+            mkdir -p /tmp/screens && cp screens/*.png /tmp/screens/
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git checkout -q --orphan ci-screens
+            git rm -rfq .
+            cp /tmp/screens/*.png .
+            git add -- *.png
+            git commit -qm "screens: ${GITHUB_SHA::7}"
+            git push -qf origin ci-screens
+          fi
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

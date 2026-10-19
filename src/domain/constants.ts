@@ -20,6 +20,17 @@ export const PRICE_FLOOR_STEP = 0.015;
 /** Допуск между area в данных и площадью полигонов комнат, м². */
 export const AREA_TOLERANCE = 0.5;
 
+// ---------- 2D-план (§6) ----------
+/** Масштаб относительно «вписанного» вида: от 0.5× до 4×. */
+export const PLAN_ZOOM_MIN = 0.5;
+export const PLAN_ZOOM_MAX = 4;
+/** Шаг масштаба на одно деление колеса мыши. */
+export const PLAN_WHEEL_STEP = 1.12;
+/** Отступ при вписывании этажа в окно, px. */
+export const PLAN_FIT_PADDING = 24;
+/** Прозрачность квартир, не прошедших фильтр. */
+export const PLAN_FILTERED_OPACITY = 0.25;
+
 // ---------- прогулка (§7.1) ----------
 export const HEIGHT_MIN_CM = 100;
 export const HEIGHT_MAX_CM = 220;

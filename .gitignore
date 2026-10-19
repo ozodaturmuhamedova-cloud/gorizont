@@ -17,3 +17,6 @@ blob-report
 !.env.example
 .DS_Store
 *.log
+
+# Скриншоты e2e (публикуются CI в ветку ci-screens)
+screens
