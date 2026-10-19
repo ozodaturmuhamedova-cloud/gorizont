@@ -1,5 +1,6 @@
 import { Canvas, useThree } from '@react-three/fiber';
 import { useEffect, useMemo } from 'react';
+import * as THREE from 'three';
 import { orbitHome, sceneFrame } from '../domain/scene3d';
 import type { Apartment, Finish } from '../domain/types';
 import { CameraRig } from './CameraRig';
@@ -53,6 +54,7 @@ function DevStats() {
  */
 export default function ApartmentScene({ apartment, finish, cut, resetKey }: ApartmentSceneProps) {
   const frame = useMemo(() => sceneFrame(apartment.outline), [apartment]);
+  // стартовая позиция до первого кадра; дальше вид ведёт CameraRig с учётом пропорций окна
   const home = useMemo(() => orbitHome(frame, FOV), [frame]);
 
   return (
@@ -63,6 +65,12 @@ export default function ApartmentScene({ apartment, finish, cut, resetKey }: Apa
       camera={{ fov: FOV, position: home.position, near: 0.1, far: 200 }}
       // нужен для скриншота сцены в заявку (фаза 6)
       gl={{ preserveDrawingBuffer: true, antialias: true }}
+      // нейтральная тональная компрессия: цвета отделки на экране совпадают с образцами
+      // (ACES, который R3F ставит по умолчанию, делает светлые стены серыми)
+      onCreated={({ gl }) => {
+        gl.toneMapping = THREE.NeutralToneMapping;
+        gl.toneMappingExposure = 1;
+      }}
       data-testid="scene-3d"
     >
       <color attach="background" args={[BACKGROUND]} />
@@ -76,7 +84,7 @@ export default function ApartmentScene({ apartment, finish, cut, resetKey }: Apa
         <planeGeometry args={[GROUND_SIZE, GROUND_SIZE]} />
         <meshStandardMaterial color={GROUND} roughness={1} />
       </mesh>
-      <CameraRig home={home} radius={frame.radius} resetKey={resetKey} />
+      <CameraRig frame={frame} fov={FOV} resetKey={resetKey} />
       <DevStats />
     </Canvas>
   );

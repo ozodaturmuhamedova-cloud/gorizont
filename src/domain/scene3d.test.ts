@@ -135,3 +135,12 @@ describe('кадр и камера на реальных квартирах', ()
     });
   }
 });
+
+describe('камера и пропорции экрана', () => {
+  it('на узком портретном экране камера дальше, на широком — как при 1:1', () => {
+    const f = sceneFrame(building.layouts[5]!.outline);
+    const d = (aspect: number) => Math.hypot(...orbitHome(f, 50, aspect).position);
+    expect(d(0.45)).toBeGreaterThan(d(1) * 1.8);
+    expect(d(1.6)).toBeCloseTo(d(1), 9);
+  });
+});

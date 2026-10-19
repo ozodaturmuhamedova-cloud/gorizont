@@ -9,10 +9,10 @@ export function Lighting({ radius }: { radius: number }) {
   const r = Math.max(radius * 1.4, 6);
   return (
     <>
-      <hemisphereLight args={['#f4f7ff', '#8a8170', 0.7]} />
+      <hemisphereLight args={['#f4f7ff', '#8a8170', 1.0]} />
       <directionalLight
         position={[r * 0.8, r * 1.6, r * 0.6]}
-        intensity={1.6}
+        intensity={2.0}
         color="#fff1dc"
         castShadow
         shadow-mapSize={[2048, 2048]}

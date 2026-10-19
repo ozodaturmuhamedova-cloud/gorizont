@@ -180,9 +180,19 @@ export function sceneFrame(outline: readonly Vec2[]): SceneFrame {
   return { center: centerOf(outline), size, radius: Math.hypot(size[0], size[1]) / 2 };
 }
 
-/** Домашний вид камеры «3/4» для квартиры, сдвинутой в начало координат. */
-export function orbitHome(frame: SceneFrame, fovDeg = 50): { position: Vec3; target: Vec3 } {
-  const dist = (frame.radius / Math.sin(((fovDeg / 2) * Math.PI) / 180)) * 1.05;
+/**
+ * Домашний вид камеры «3/4» для квартиры, сдвинутой в начало координат.
+ * aspect — ширина/высота окна: на узком (портретном) экране узким становится
+ * горизонтальный угол обзора, и камеру нужно отодвинуть, чтобы квартира не обрезалась.
+ */
+export function orbitHome(
+  frame: SceneFrame,
+  fovDeg = 50,
+  aspect = 1,
+): { position: Vec3; target: Vec3 } {
+  const vHalf = ((fovDeg / 2) * Math.PI) / 180;
+  const hHalf = Math.atan(Math.tan(vHalf) * aspect);
+  const dist = (frame.radius / Math.sin(Math.min(vHalf, hHalf))) * 1.05;
   const dir: Vec3 = [0.5, 0.95, 0.85];
   const n = Math.hypot(...dir);
   return {
