@@ -63,7 +63,7 @@ function pickItems(
   density: Density,
   rng: Rng,
 ): FurnitureItem[] {
-  let ids = [...(catalog.presets[room.type] ?? [])];
+  const ids = [...(catalog.presets[room.type] ?? [])];
   if (isStudio && room.type === 'living') ids.push(...(catalog.presets.kitchen ?? []));
   let items = ids.map((id) => catalog.byId.get(id)).filter((x): x is FurnitureItem => !!x);
   if (density === 'sparse') {

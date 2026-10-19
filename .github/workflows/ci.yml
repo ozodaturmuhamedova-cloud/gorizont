@@ -13,11 +13,14 @@ concurrency:
 jobs:
   check:
     name: typecheck · lint · test · build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      # нужно только шагу Bootstrap snapshots, чтобы закоммитить снапшоты в main
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Install
@@ -28,29 +31,32 @@ jobs:
         run: npm run lint
       - name: Format
         run: npx prettier --check .
-      # Пока снапшоты seed 1–3 не закоммичены, Vitest в CI их не создаёт и падает.
-      # Этот шаг создаёт их и печатает в лог, чтобы их можно было закоммитить.
+      # Если снапшотов seed 1–3 ещё нет, Vitest в CI их не создаёт и падает.
+      # Этот шаг создаёт их; в main — коммитит (это не запускает CI повторно).
       - name: Bootstrap snapshots
         if: hashFiles('src/testing/random/__snapshots__/**') == ''
         run: |
           npx vitest run -u src/testing/random/random.test.ts
-          echo "::group::SNAPSHOT random.test.ts.snap"
-          base64 -w0 src/testing/random/__snapshots__/random.test.ts.snap
-          echo
-          echo "::endgroup::"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add src/testing/random/__snapshots__
+            git commit -m "test: снапшоты seed 1–3 (созданы CI при первом прогоне)"
+            git push
+          fi
       - name: Unit tests
-        run: npm run test
+        run: npm run test -- --reporter=default --reporter=github-actions
       - name: Build
         run: npm run build
 
   e2e:
     name: e2e (Playwright)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: check
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: Install
