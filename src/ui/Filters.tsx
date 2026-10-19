@@ -109,6 +109,7 @@ function RangeField({
 }
 
 export function Filters({ filters: f, roomOptions, found, onChange, onReset }: FiltersProps) {
+  const [open, setOpen] = useState(false);
   const toggleRoom = (n: RoomCount) =>
     onChange({
       rooms: f.rooms.includes(n)
@@ -116,79 +117,98 @@ export function Filters({ filters: f, roomOptions, found, onChange, onReset }: F
         : [...f.rooms, n].sort((a, b) => a - b),
     });
 
+  const active = !isDefaultFilters(f);
   return (
-    <section
-      aria-label={strings.filters.label}
-      className="grid gap-4 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end"
-    >
-      <fieldset className="flex flex-col gap-1">
-        <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">
-          {strings.filters.rooms}
-        </legend>
-        <div className="flex flex-wrap gap-1.5">
-          {roomOptions.map((n) => {
-            const on = f.rooms.includes(n);
-            return (
+    <section aria-label={strings.filters.label} className="flex flex-col gap-2">
+      {/* На телефоне фильтры свёрнуты, чтобы план был ближе к началу страницы */}
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="filters-panel"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-between rounded-xl border border-line bg-paper px-4 py-2.5 text-sm lg:hidden"
+      >
+        <span className="font-medium">
+          {strings.filters.toggle}
+          {active && <span className="ml-1.5 text-brand">●</span>}
+        </span>
+        <span className="tabular-nums text-muted">
+          {strings.filters.found(found)} {open ? '▴' : '▾'}
+        </span>
+      </button>
+      <div
+        id="filters-panel"
+        className={`${open ? 'grid' : 'hidden'} gap-4 rounded-2xl border border-line bg-paper p-4 sm:grid-cols-2 lg:grid lg:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end`}
+      >
+        <fieldset className="flex flex-col gap-1">
+          <legend className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted">
+            {strings.filters.rooms}
+          </legend>
+          <div className="flex flex-wrap gap-1.5">
+            {roomOptions.map((n) => {
+              const on = f.rooms.includes(n);
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  aria-pressed={on}
+                  aria-label={strings.filters.roomsAria(n)}
+                  onClick={() => toggleRoom(n)}
+                  className={`h-9 min-w-9 rounded-lg border px-3 text-sm font-medium ${
+                    on
+                      ? 'border-brand bg-brand text-white'
+                      : 'border-line bg-paper hover:border-brand'
+                  }`}
+                >
+                  {strings.filters.roomsChip(n)}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <RangeField
+          id="area"
+          label={strings.filters.area}
+          range={f.areaRange}
+          k={1}
+          step={1}
+          onChange={(r) => onChange({ areaRange: r })}
+        />
+        <RangeField
+          id="price"
+          label={strings.filters.price}
+          range={f.priceRange}
+          k={MLN}
+          step={0.1}
+          onChange={(r) => onChange({ priceRange: r })}
+        />
+
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:col-span-2 lg:col-span-1 lg:flex-col lg:items-start">
+          <label htmlFor="only-free" className="inline-flex items-center gap-2 text-sm">
+            <input
+              id="only-free"
+              type="checkbox"
+              checked={f.onlyFree}
+              onChange={(e) => onChange({ onlyFree: e.target.checked })}
+              className="h-4 w-4 accent-brand"
+            />
+            {strings.filters.onlyFree}
+          </label>
+          <div className="flex items-center gap-3">
+            <span role="status" className="text-sm tabular-nums text-muted">
+              {strings.filters.found(found)}
+            </span>
+            {active && (
               <button
-                key={n}
                 type="button"
-                aria-pressed={on}
-                aria-label={strings.filters.roomsAria(n)}
-                onClick={() => toggleRoom(n)}
-                className={`h-9 min-w-9 rounded-lg border px-3 text-sm font-medium ${
-                  on
-                    ? 'border-brand bg-brand text-white'
-                    : 'border-line bg-paper hover:border-brand'
-                }`}
+                onClick={onReset}
+                className="text-sm font-medium text-brand hover:underline"
               >
-                {strings.filters.roomsChip(n)}
+                {strings.filters.reset}
               </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <RangeField
-        id="area"
-        label={strings.filters.area}
-        range={f.areaRange}
-        k={1}
-        step={1}
-        onChange={(r) => onChange({ areaRange: r })}
-      />
-      <RangeField
-        id="price"
-        label={strings.filters.price}
-        range={f.priceRange}
-        k={MLN}
-        step={0.1}
-        onChange={(r) => onChange({ priceRange: r })}
-      />
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:col-span-2 lg:col-span-1 lg:flex-col lg:items-start">
-        <label htmlFor="only-free" className="inline-flex items-center gap-2 text-sm">
-          <input
-            id="only-free"
-            type="checkbox"
-            checked={f.onlyFree}
-            onChange={(e) => onChange({ onlyFree: e.target.checked })}
-            className="h-4 w-4 accent-brand"
-          />
-          {strings.filters.onlyFree}
-        </label>
-        <div className="flex items-center gap-3">
-          <span role="status" className="text-sm tabular-nums text-muted">
-            {strings.filters.found(found)}
-          </span>
-          {!isDefaultFilters(f) && (
-            <button
-              type="button"
-              onClick={onReset}
-              className="text-sm font-medium text-brand hover:underline"
-            >
-              {strings.filters.reset}
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </section>

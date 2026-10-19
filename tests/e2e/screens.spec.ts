@@ -40,10 +40,20 @@ test('скриншот: приближенная выбранная кварти
 
 test('скриншот: фильтр «2-комн., до 11 млн» и список', async ({ page }, info) => {
   await page.goto('/?rooms=2&price=-11000000&apt=s1-f9-a3');
+  const toggle = page.getByRole('button', { name: /^Фильтры/ });
+  if (await toggle.isVisible()) await toggle.click();
   await page.waitForFunction(() => window.__gorizontPlan?.apartmentPoint('s1-f9-a3') != null);
   await page.waitForTimeout(300);
   await page.screenshot({
     path: `screens/filters-${info.project.name}.png`,
     fullPage: info.project.name === 'mobile',
   });
+});
+
+test('скриншот: первый экран телефона', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'только телефон');
+  await page.goto('/?apt=s1-f9-a3');
+  await page.waitForFunction(() => window.__gorizontPlan?.apartmentPoint('s1-f9-a3') != null);
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'screens/first-screen-mobile.png' });
 });

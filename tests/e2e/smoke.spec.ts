@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test';
 
 /** Точка квартиры на экране (хук есть только в dev-сборке, на которой и идут e2e). */
 async function apartmentPoint(page: Page, id: string) {
+  // на телефоне план может быть ниже первого экрана: клик по координатам вне окна не дойдёт
+  await page.getByTestId('floor-plan').scrollIntoViewIfNeeded();
   await page.waitForFunction((x) => window.__gorizontPlan?.apartmentPoint(x) != null, id);
   const p = await page.evaluate((x) => window.__gorizontPlan!.apartmentPoint(x), id);
   return p!;
@@ -71,6 +73,8 @@ test.describe('фильтры', () => {
     page,
   }) => {
     await page.goto('/');
+    const toggle = page.getByRole('button', { name: /^Фильтры/ });
+    if (await toggle.isVisible()) await toggle.click(); // на телефоне фильтры свёрнуты
     await page.getByRole('button', { name: '3-комнатные' }).click();
     await page.getByLabel('Только свободные').check();
     await expect(page).toHaveURL(/rooms=3/);
@@ -87,6 +91,7 @@ test.describe('фильтры', () => {
     await expect(page).toHaveURL(/apt=s1-f\d-a6/);
 
     await page.reload();
+    if (await toggle.isVisible()) await toggle.click();
     await expect(page.getByRole('button', { name: '3-комнатные' })).toHaveAttribute(
       'aria-pressed',
       'true',

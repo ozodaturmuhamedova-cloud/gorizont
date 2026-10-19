@@ -67,17 +67,19 @@ export function PlanPage() {
       />
 
       <div className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_320px]">
-        <FloorSwitcher
-          floors={building.floors}
-          apartments={building.apartments}
-          currentFloor={floor}
-          selectedId={apartmentId}
-          matchingIds={matchingIds}
-          onFloor={setFloor}
-          onSelect={selectApartment}
-          onHover={setHovered}
-        />
-        <div className="flex min-w-0 flex-col gap-2">
+        <div className="order-3 lg:order-none">
+          <FloorSwitcher
+            floors={building.floors}
+            apartments={building.apartments}
+            currentFloor={floor}
+            selectedId={apartmentId}
+            matchingIds={matchingIds}
+            onFloor={setFloor}
+            onSelect={selectApartment}
+            onHover={setHovered}
+          />
+        </div>
+        <div className="order-1 flex min-w-0 flex-col gap-2 lg:order-none">
           <div className="h-[56vh] min-h-[340px] lg:h-[min(640px,calc(100vh-240px))]">
             <FloorPlanStage
               floor={floor}
@@ -90,17 +92,25 @@ export function PlanPage() {
               onSelect={selectApartment}
             />
           </div>
-          <p className="text-xs text-muted">{strings.plan.hint}</p>
+          <p className="text-xs text-muted">
+            <span className="lg:hidden">{strings.plan.hintTouch}</span>
+            <span className="hidden lg:inline">{strings.plan.hint}</span>
+          </p>
         </div>
-        <div className="flex min-w-0 flex-col gap-4">
-          <ApartmentCard apartment={selected} onClose={() => selectApartment(null)} />
-          <ApartmentList
-            apartments={matching}
-            selectedId={apartmentId}
-            hoveredId={hoveredId}
-            onSelect={selectApartment}
-            onHover={setHovered}
-          />
+        {/* На телефоне: план → карточка → шахматка → список; на десктопе — колонка справа */}
+        <div className="contents lg:flex lg:min-w-0 lg:flex-col lg:gap-4">
+          <div className="order-2 lg:order-none">
+            <ApartmentCard apartment={selected} onClose={() => selectApartment(null)} />
+          </div>
+          <div className="order-4 lg:order-none">
+            <ApartmentList
+              apartments={matching}
+              selectedId={apartmentId}
+              hoveredId={hoveredId}
+              onSelect={selectApartment}
+              onHover={setHovered}
+            />
+          </div>
         </div>
       </div>
     </section>
