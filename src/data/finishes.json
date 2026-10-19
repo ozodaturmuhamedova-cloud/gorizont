@@ -1,0 +1,23 @@
+[
+  {
+    "id": "scandi",
+    "name": "Скандинавия",
+    "pricePerM2": 0,
+    "floor": { "wood": "#d6bd94", "tile": "#e6eae8" },
+    "wall": "#f0eee8"
+  },
+  {
+    "id": "loft",
+    "name": "Лофт",
+    "pricePerM2": 4500,
+    "floor": { "wood": "#7a573f", "tile": "#7c8184" },
+    "wall": "#aaa7a1"
+  },
+  {
+    "id": "classic",
+    "name": "Классика",
+    "pricePerM2": 6200,
+    "floor": { "wood": "#9b6a43", "tile": "#e2d6c2" },
+    "wall": "#e7dcca"
+  }
+]

@@ -1,0 +1,244 @@
+<title>ЖК Горизонт 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: шоурум-приложение — каталог слева, 3D-макет квартиры по центру, смета справа; панели как листы планшета. */
+:root{
+  --bg:#e9ece7; --panel:#f7f8f5; --sunk:#eef1ec; --fg:#1b221f; --muted:#5b6761; --line:#d3d9d2;
+  --accent:#2c6a57; --accent-soft:#d7e6df; --accent-ink:#ffffff; --brass:#a6773a;
+  --ok:#2f9a5c; --warn:#c98f12; --err:#cc4636; --scene:#dde2db; --ground:#cfd5cd;
+  --f-display:"Unbounded","Onest",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:14px; --shadow:0 1px 0 rgba(20,30,25,.04),0 8px 24px -14px rgba(20,30,25,.25);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121715; --panel:#1a211e; --sunk:#151b19; --fg:#e4eae6; --muted:#93a099; --line:#2b3531;
+  --accent:#6db398; --accent-soft:#1f3a31; --accent-ink:#0c1411; --brass:#d2a565;
+  --ok:#49c07c; --warn:#e2ac3a; --err:#ee6b5a; --scene:#18201c; --ground:#141b18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121715; --panel:#1a211e; --sunk:#151b19; --fg:#e4eae6; --muted:#93a099; --line:#2b3531;
+  --accent:#6db398; --accent-soft:#1f3a31; --accent-ink:#0c1411; --brass:#d2a565;
+  --ok:#49c07c; --warn:#e2ac3a; --err:#ee6b5a; --scene:#18201c; --ground:#141b18; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+#app{height:100%;box-sizing:border-box;padding-block:12px;padding-inline:16px;display:grid;gap:12px;
+  grid-template-columns:288px minmax(0,1fr) 312px;grid-template-rows:auto minmax(0,1fr);
+  grid-template-areas:"top top top" "cat stage est"}
+
+/* верхняя панель */
+.top{grid-area:top;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.brand{display:flex;flex-direction:column;gap:2px;min-width:0;margin-right:auto}
+.brand h1{font-family:var(--f-display);font-weight:600;font-size:19px;letter-spacing:-.01em;margin:0;text-wrap:balance}
+.brand p{margin:0;color:var(--muted);font-size:12.5px}
+.seg{display:inline-flex;background:var(--sunk);border:1px solid var(--line);border-radius:999px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 14px;border-radius:999px;cursor:pointer;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.ctl{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ctl label.sel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12.5px}
+select{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:5px 11px;cursor:pointer;font-size:12.5px;user-select:none}
+.chip input{accent-color:var(--accent);margin:0}
+
+/* панели */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);min-height:0;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.panel h2{font-family:var(--f-display);font-weight:500;font-size:13px;letter-spacing:.04em;text-transform:uppercase;margin:0;color:var(--muted)}
+.ph{padding:14px 16px 10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid var(--line)}
+.scroll{overflow:auto;min-height:0;flex:1}
+#cat{grid-area:cat}
+#est{grid-area:est}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
+.tabs button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.items{list-style:none;margin:0;padding:6px}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 10px;border-radius:10px;cursor:pointer;border:1px solid transparent;width:100%;text-align:left;background:transparent}
+.item:hover{background:var(--sunk)}
+.item[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.item .n{font-weight:500;min-width:0}
+.item .p{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;text-align:right}
+.item .d{grid-column:1/-1;color:var(--muted);font-size:11.5px;font-family:var(--f-mono)}
+.actions{padding:12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 12px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--err)}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.seed{font-size:11.5px;color:var(--muted)}
+
+/* сцена */
+#stage{grid-area:stage;position:relative;border-radius:var(--r);overflow:hidden;background:var(--scene);border:1px solid var(--line);min-height:0;touch-action:none}
+#stage canvas{display:block;width:100%;height:100%}
+.ov{position:absolute;z-index:2}
+#hint{left:12px;right:12px;bottom:12px;display:flex;justify-content:center;pointer-events:none}
+#hint span{background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--muted);text-align:center;backdrop-filter:blur(6px)}
+#mini{left:12px;top:12px;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);border-radius:12px;padding:8px;backdrop-filter:blur(6px)}
+#mini canvas{width:170px;height:119px}
+#mini .cap{font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;margin-top:4px;letter-spacing:.03em}
+#tip{pointer-events:none;background:var(--fg);color:var(--bg);font-size:12px;padding:5px 9px;border-radius:8px;max-width:240px;transform:translate(14px,14px)}
+#tip i{font-style:normal;opacity:.75;display:block}
+#bar{top:12px;right:12px;left:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px;box-shadow:var(--shadow);max-width:calc(100% - 220px)}
+#bar .t{font-weight:600;min-width:0}
+#bar .s{font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+#bar .btn{padding:5px 9px;font-size:12.5px}
+#toast{left:50%;bottom:56px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;font-size:13px;transition:opacity .2s}
+#hud{top:12px;right:12px;width:min(300px,calc(100% - 210px));background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow)}
+#hud .room{font-family:var(--f-display);font-size:15px;font-weight:500}
+#hud dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px}
+#hud dt{color:var(--muted)} #hud dd{margin:0;text-align:right}
+#hud .w{font-size:12px;color:var(--warn)}
+#lockcue{left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;background:color-mix(in srgb,var(--panel) 90%,transparent);border:1px solid var(--line);padding:10px 14px;border-radius:12px;font-size:13px;text-align:center}
+#cross{left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:var(--accent-ink);box-shadow:0 0 0 1.5px var(--accent);pointer-events:none}
+#joy{left:18px;bottom:18px;width:118px;height:118px;border-radius:50%;background:color-mix(in srgb,var(--panel) 70%,transparent);border:1px solid var(--line);touch-action:none}
+#joy b{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--accent);opacity:.85}
+#nogl{inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;color:var(--muted)}
+
+/* смета */
+.est{padding:12px 16px;display:flex;flex-direction:column;gap:14px}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline}
+.kv .k{color:var(--muted);font-size:12.5px;min-width:0}
+.kv .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;font-size:12.5px}
+.lines{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.lines li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;font-size:12.5px}
+.lines li .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.lines li .q{color:var(--muted)}
+.total{border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.total b{font-family:var(--f-display);font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.sub{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 6px;font-weight:600}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.checks li{font-size:12.5px;display:flex;gap:8px;align-items:flex-start}
+.checks li button{all:unset;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:3px}
+.checks li .dot{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none;background:currentColor}
+.checks .m{color:var(--muted)}
+.unit{color:var(--muted);font-size:11.5px}
+
+/* диалог роста */
+.modal{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;background:rgba(10,15,13,.45);padding:16px}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;width:min(380px,100%);display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px -30px rgba(0,0,0,.5)}
+.dlg h3{font-family:var(--f-display);font-weight:500;font-size:17px;margin:0}
+.dlg p{margin:0;color:var(--muted);font-size:13px}
+.hrow{display:flex;align-items:center;gap:12px}
+.hrow input[type=number]{width:96px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--sunk);font-family:var(--f-mono);font-size:16px}
+.hrow input[type=range]{flex:1;accent-color:var(--accent);min-width:0}
+.preview{display:flex;gap:16px;align-items:flex-end}
+.preview svg{flex:none}
+.preview dl{margin:0;display:grid;grid-template-columns:auto auto;gap:4px 12px;font-size:12.5px}
+.preview dt{color:var(--muted)} .preview dd{margin:0;font-family:var(--f-mono)}
+.msg{font-size:12.5px;color:var(--err);min-height:1.2em}
+
+@media (max-width:1180px){
+  #app{height:auto;min-height:100%;grid-template-columns:270px minmax(0,1fr);grid-template-rows:auto 70vh auto;grid-template-areas:"top top" "cat stage" "est est"}
+  #cat .scroll{max-height:calc(70vh - 210px)}
+}
+@media (max-width:760px){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto 62vh auto auto;grid-template-areas:"top" "stage" "cat" "est"}
+  #cat .scroll{max-height:none}
+  #bar{left:12px;right:12px;top:auto;bottom:52px;max-width:none}
+  #hud{width:auto;left:12px;right:12px;top:auto;bottom:150px}
+  #mini canvas{width:130px;height:91px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <h1>ЖК Горизонт</h1>
+      <p>Секция 1 · 9 этаж · Кв. 47 · 2-комн. · <span class="num" id="areaTop"></span> м² · потолки 2,70 м</p>
+    </div>
+    <div class="seg" role="group" aria-label="Режим камеры">
+      <button id="mOrbit" aria-pressed="true">Обзор</button>
+      <button id="mWalk" aria-pressed="false">Прогулка</button>
+    </div>
+    <div class="ctl">
+      <label class="sel" for="finish">Отделка
+        <select id="finish"></select>
+      </label>
+      <label class="chip" for="cut"><input type="checkbox" id="cut"> Срез стен</label>
+      <label class="chip" for="zones"><input type="checkbox" id="zones"> Зоны подхода</label>
+    </div>
+  </header>
+
+  <aside class="panel" id="cat" aria-label="Каталог мебели">
+    <div class="ph">
+      <h2>Каталог мебели</h2>
+      <div class="tabs" id="tabs"></div>
+    </div>
+    <div class="scroll"><ul class="items" id="items"></ul></div>
+    <div class="actions">
+      <button class="btn primary" id="preset">Готовый комплект</button>
+      <div class="row">
+        <button class="btn" id="random">Случайный набор</button>
+        <button class="btn ghost danger" id="clear">Очистить</button>
+      </div>
+      <div class="seed num" id="seed"></div>
+    </div>
+  </aside>
+
+  <main id="stage" aria-label="3D-сцена квартиры">
+    <div class="ov" id="mini"><canvas id="miniCv" width="340" height="238" aria-label="Мини-план квартиры"></canvas><div class="cap"><span>План</span><span class="num">10,0 × 7,0 м</span></div></div>
+    <div class="ov" id="bar" hidden></div>
+    <div class="ov" id="hud" hidden>
+      <div class="room" id="hudRoom">Прихожая</div>
+      <dl>
+        <dt>Ваш рост</dt><dd class="num" id="hudH"></dd>
+        <dt>Глаза на высоте</dt><dd class="num" id="hudEye"></dd>
+        <dt>До потолка</dt><dd class="num" id="hudCeil"></dd>
+      </dl>
+      <div class="w" id="hudWarn" hidden>Потолок ниже уровня ваших глаз — камера опущена до 2,60 м</div>
+      <div class="row"><button class="btn" id="hudChange">Изменить рост</button><button class="btn" id="hudExit">Выйти из прогулки</button></div>
+    </div>
+    <div class="ov" id="cross" hidden></div>
+    <div class="ov" id="lockcue" hidden>Кликните по сцене, чтобы управлять мышью<br><span class="unit">или тяните мышью с зажатой кнопкой</span></div>
+    <div class="ov" id="joy" hidden><b id="joyK"></b></div>
+    <div class="ov" id="tip" hidden></div>
+    <div class="ov" id="toast" hidden></div>
+    <div class="ov" id="hint"><span id="hintT"></span></div>
+  </main>
+
+  <aside class="panel" id="est" aria-label="Смета">
+    <div class="ph"><h2>Смета</h2></div>
+    <div class="scroll"><div class="est" id="estBody"></div></div>
+  </aside>
+</div>
+
+<div class="modal" id="hdlg" hidden>
+  <form class="dlg" id="hform" novalidate>
+    <h3>Ваш рост</h3>
+    <p>Камера встанет на уровень ваших глаз: так видно реальную высоту подоконников, шкафов и потолков.</p>
+    <div class="hrow">
+      <input type="number" id="hNum" min="100" max="220" step="1" value="170" inputmode="numeric" aria-label="Рост в сантиметрах">
+      <span class="unit">см</span>
+      <input type="range" id="hRange" min="100" max="220" step="1" value="170" aria-label="Рост, ползунок">
+    </div>
+    <div class="preview">
+      <svg width="64" height="96" viewBox="0 0 64 96" aria-hidden="true">
+        <rect x="2" y="2" width="60" height="92" rx="4" fill="none" stroke="var(--line)"></rect>
+        <line x1="2" y1="6" x2="62" y2="6" stroke="var(--muted)" stroke-dasharray="3 3"></line>
+        <g id="hFig" fill="var(--accent)"><circle cx="32" cy="30" r="6"></circle><rect x="25" y="38" width="14" height="52" rx="5"></rect></g>
+        <line id="hEyeLine" x1="8" x2="56" y1="30" y2="30" stroke="var(--brass)" stroke-width="1.5"></line>
+      </svg>
+      <dl><dt>Глаза</dt><dd id="hEye">1,59 м</dd><dt>Потолок</dt><dd>2,70 м</dd><dt>Шаг</dt><dd id="hSpd">1,4 м/с</dd></dl>
+    </div>
+    <div class="msg" id="hMsg" role="status"></div>
+    <div class="row"><button type="button" class="btn" id="hCancel">Отмена</button><button type="submit" class="btn primary" id="hOk">Начать прогулку</button></div>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/*__CORE__*/
+</script>
+<script>
+/*__APP__*/
+</script>

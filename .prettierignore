@@ -1,0 +1,8 @@
+dist
+coverage
+playwright-report
+test-results
+prototype
+package-lock.json
+CLAUDE.md
+PLAN.md

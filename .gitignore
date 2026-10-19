@@ -1,0 +1,19 @@
+# Локальная конфигурация MCP с токеном — не коммитить
+.mcp.json
+
+# Зависимости и сборка
+node_modules
+dist
+coverage
+
+# Playwright
+playwright-report
+test-results
+blob-report
+
+# Окружение и системное
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
